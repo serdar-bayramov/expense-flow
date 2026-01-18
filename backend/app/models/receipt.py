@@ -1,0 +1,43 @@
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Enum
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+import enum
+from app.core.database import Base
+
+class ReceiptStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class Receipt(Base):
+    __tablename__ = "receipts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # Image storage
+    image_url = Column(String, nullable=False)  # GCS URL
+    
+    # Extracted data from OCR
+    vendor = Column(String, nullable=True)
+    date = Column(DateTime(timezone=True), nullable=True)
+    total_amount = Column(Float, nullable=True)
+    tax_amount = Column(Float, nullable=True)
+    items = Column(Text, nullable=True)  # JSON string or text list
+    
+    # User categorization
+    category = Column(String, nullable=True)  # e.g., "Meals & Entertainment"
+    notes = Column(Text, nullable=True)
+    is_business = Column(Integer, default=1)  # 1=business, 0=personal
+    
+    # Processing status
+    status = Column(Enum(ReceiptStatus), default=ReceiptStatus.PENDING)
+    ocr_raw_text = Column(Text, nullable=True)  # Full OCR output for debugging
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    owner = relationship("User", back_populates="receipts")

@@ -1,0 +1,46 @@
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from datetime import datetime
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=8)
+    # Field(...) means required
+
+
+class UserLogin(UserBase):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(UserBase):
+    id: int
+    unique_receipt_email: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True # Allows converting SQLAlchemy models to Pydantic
+
+
+class Token(BaseModel):
+    """
+    Schema for JWT token response after login.
+    """
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    """
+    Schema for data extracted from JWT token.
+    Used internally to pass user_id around.
+    """
+    user_id: Optional[int] = None
+
+
