@@ -13,11 +13,6 @@ class UserCreate(UserBase):
     # Field(...) means required
 
 
-class UserLogin(UserBase):
-    email: EmailStr
-    password: str
-
-
 class UserResponse(UserBase):
     id: int
     unique_receipt_email: str

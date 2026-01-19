@@ -170,15 +170,16 @@ def parse_receipt_with_ai(raw_text: str) -> dict:
     
     try:
         # Prompt for GPT to parse the receipt
-        system_prompt = """You are a receipt parser. Extract structured data from receipt text.
+        system_prompt = """You are a receipt parser specialized in UK receipts. Extract structured data from receipt text.
         
 Rules:
 - Extract vendor name (business name)
 - Extract date in YYYY-MM-DD format
-- Extract total amount as a number (no $ symbol)
-- Extract tax amount if present
+- Extract total amount as a number (no £ or $ symbol)
+- Extract VAT/tax amount if present (look for "VAT", "Tax", "GST")
 - Extract individual items with names and prices
 - If you can't find something, use null
+- For UK receipts, VAT is typically 20% and shown separately
 
 Return valid JSON only, no explanation."""
 
@@ -195,7 +196,9 @@ Required JSON format:
     "items": [
         {{"name": "string", "price": number}}
     ]
-}}"""
+}}
+
+Note: Look for VAT amount on UK receipts - it's usually labeled as "VAT" or "Tax"."""
 
         # Call OpenAI API
         response = openai_client.chat.completions.create(
