@@ -10,7 +10,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     
-    # Unique email for forwarding receipts (e.g., sarah-x8k2@receipts.yourapp.com)
+    # Unique email for forwarding receipts (e.g., sarah-x8k2@receipts.xpense.com)
     unique_receipt_email = Column(String, unique=True, index=True, nullable=False)
     
     # User details

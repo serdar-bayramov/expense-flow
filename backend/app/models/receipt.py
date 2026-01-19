@@ -10,6 +10,19 @@ class ReceiptStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+class ExpenseCategory(str, enum.Enum):
+    """HMRC-compliant expense categories for UK self-employed allowable expenses."""
+    OFFICE_COSTS = "Office Costs"  # Stationery, phone bills
+    TRAVEL_COSTS = "Travel Costs"  # Fuel, parking, train/bus fares
+    CLOTHING = "Clothing"  # Uniforms
+    STAFF_COSTS = "Staff Costs"  # Salaries, subcontractor costs
+    STOCK_MATERIALS = "Stock and Materials"  # Things you buy to sell on
+    FINANCIAL_COSTS = "Financial Costs"  # Insurance, bank charges
+    BUSINESS_PREMISES = "Business Premises"  # Heating, lighting, business rates
+    ADVERTISING_MARKETING = "Advertising and Marketing"  # Website costs, promotional materials
+    TRAINING = "Training and Development"  # Business-related courses
+    OTHER = "Other"  # Miscellaneous business expenses
+
 class Receipt(Base):
     __tablename__ = "receipts"
     
@@ -27,7 +40,7 @@ class Receipt(Base):
     items = Column(Text, nullable=True)  # JSON string or text list
     
     # User categorization
-    category = Column(String, nullable=True)  # e.g., "Meals & Entertainment"
+    category = Column(Enum(ExpenseCategory), nullable=True)  # HMRC expense category
     notes = Column(Text, nullable=True)
     is_business = Column(Integer, default=1)  # 1=business, 0=personal
     

@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut } from 'lucide-react';
+import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3 } from 'lucide-react';
 import { authAPI } from '@/lib/api';
+import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 
 
 export default function DashboardLayout({
@@ -17,6 +18,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState<string>('');
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function DashboardLayout({
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Receipts', href: '/dashboard/receipts', icon: ReceiptPoundSterling },
+    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
@@ -73,7 +76,8 @@ export default function DashboardLayout({
           {/* Navigation */}
           <nav className="flex-1 px-3 space-y-1">
             {navigation.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || 
+                              (item.href !== '/dashboard' && pathname?.startsWith(item.href));
               const Icon = item.icon;
               
               return (
@@ -109,7 +113,7 @@ export default function DashboardLayout({
             {/* Right side - Actions */}
             <div className="flex items-center gap-4">
               {/* Upload button */}
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => setUploadModalOpen(true)}>
                 <Upload className="h-4 w-4" />
                 Upload Receipt
               </Button>
@@ -137,6 +141,16 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+
+      {/* Upload Modal */}
+      <UploadReceiptModal
+        open={uploadModalOpen}
+        onOpenChange={setUploadModalOpen}
+        onUploadComplete={() => {
+          // Refresh page to show new receipt
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

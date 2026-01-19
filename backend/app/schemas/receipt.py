@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from app.models.receipt import ReceiptStatus
+from app.models.receipt import ReceiptStatus, ExpenseCategory
 
 
 class ReceiptBase(BaseModel):
@@ -13,7 +13,7 @@ class ReceiptBase(BaseModel):
     total_amount: Optional[float] = None
     tax_amount: Optional[float] = None
     items: Optional[str] = None
-    category: Optional[str] = None
+    category: Optional[ExpenseCategory] = None
     notes: Optional[str] = None
     is_business: int = 1  # 1 = business, 0 = personal
 

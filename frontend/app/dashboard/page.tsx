@@ -1,27 +1,81 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReceiptPoundSterling, PoundSterling, TrendingUp } from 'lucide-react';
-import { authAPI } from '@/lib/api';
+import { Badge } from '@/components/ui/badge';
+import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle } from 'lucide-react';
+import { authAPI, receiptsAPI, Receipt } from '@/lib/api';
+import { format } from 'date-fns';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [stats, setStats] = useState({
+    totalReceipts: 0,
+    totalSpent: 0,
+    totalVAT: 0,
+    pendingReview: 0,
+  });
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const userData = await authAPI.me(token);
-          setUser(userData);
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-        }
+      if (!token) return;
+
+      try {
+        // Fetch user data
+        const userData = await authAPI.me(token);
+        setUser(userData);
+
+        // Fetch all receipts
+        const allReceipts = await receiptsAPI.getAll(token);
+        
+        // Get receipts from last 7 days based on upload date (created_at)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const recentReceipts = allReceipts
+          .filter(r => new Date(r.created_at) >= sevenDaysAgo)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5);
+        
+        setReceipts(recentReceipts);
+
+        // Calculate stats
+        const totalSpent = allReceipts.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+        const totalVAT = allReceipts.reduce((sum, r) => sum + (r.tax_amount || 0), 0);
+        const pendingCount = allReceipts.filter(r => r.status === 'pending').length;
+
+        setStats({
+          totalReceipts: allReceipts.length,
+          totalSpent,
+          totalVAT,
+          pendingReview: pendingCount,
+        });
+
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
       }
     };
-    fetchUser();
+    fetchData();
   }, []);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -36,7 +90,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -45,9 +99,9 @@ export default function DashboardPage() {
             <ReceiptPoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{stats.totalReceipts}</div>
             <p className="text-xs text-gray-500 mt-1">
-              Start uploading receipts
+              {stats.totalReceipts === 0 ? 'Start uploading' : 'All time'}
             </p>
           </CardContent>
         </Card>
@@ -60,7 +114,7 @@ export default function DashboardPage() {
             <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£0.00</div>
+            <div className="text-2xl font-bold">£{stats.totalSpent.toFixed(2)}</div>
             <p className="text-xs text-gray-500 mt-1">
               All time
             </p>
@@ -70,14 +124,29 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              This Month
+              Total VAT
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-400" />
+            <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£0.00</div>
+            <div className="text-2xl font-bold">£{(stats.totalVAT || 0).toFixed(2)}</div>
             <p className="text-xs text-gray-500 mt-1">
-              January 2026
+              All time
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-yellow-800">
+              Pending Review
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-900">{stats.pendingReview || 0}</div>
+            <p className="text-xs text-yellow-700 mt-1">
+              {stats.pendingReview === 0 ? 'All caught up!' : 'Need approval'}
             </p>
           </CardContent>
         </Card>
@@ -110,16 +179,71 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Empty State */}
+      {/* Recent Receipts */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-12">
-            <ReceiptPoundSterling className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No receipts yet</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              Get started by uploading your first receipt
-            </p>
-          </div>
+        <CardHeader>
+          <CardTitle>Recent Receipts (Last 7 Days)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {receipts.length === 0 ? (
+            <div className="text-center py-12">
+              <ReceiptPoundSterling className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-4 text-lg font-medium text-gray-900">No recent receipts</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Upload receipts to see them here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {receipts.map((receipt) => (
+                <div
+                  key={receipt.id}
+                  className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/dashboard/receipts/${receipt.id}`)}
+                >
+                  {/* Receipt Image Thumbnail */}
+                  <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
+                    <img
+                      src={receipt.image_url}
+                      alt={receipt.vendor || 'Receipt'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Receipt Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Store className="h-4 w-4 text-gray-400 shrink-0" />
+                      <span className="font-medium text-gray-900 truncate">
+                        {receipt.vendor || 'Unknown Vendor'}
+                      </span>
+                      <Badge className={`ml-auto ${getStatusColor(receipt.status)}`}>
+                        {receipt.status}
+                      </Badge>
+                    </div>
+                    {receipt.date && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(receipt.date), 'MMM dd, yyyy')}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Amount */}
+                  <div className="text-right shrink-0">
+                    <div className="text-lg font-bold text-gray-900">
+                      {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
+                    </div>
+                    {receipt.tax_amount && (
+                      <div className="text-xs text-gray-500">
+                        VAT: £{receipt.tax_amount.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

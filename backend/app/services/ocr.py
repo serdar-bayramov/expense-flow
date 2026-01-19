@@ -1,7 +1,11 @@
 from google.cloud import vision
+from google.cloud import storage
 from openai import OpenAI
 import json
 import os
+import io
+import fitz  # PyMuPDF
+from PIL import Image
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -16,19 +20,22 @@ vision_client = vision.ImageAnnotatorClient()
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
-def extract_text_from_receipt(image_url: str) -> str:
+def extract_text_from_receipt(image_url: str, user_id: int = None) -> tuple[str, str | None]:
     """
     Extract raw text from receipt image using Google Vision API.
     
     Args:
         image_url: Public URL of the receipt image in GCS
+        user_id: User ID (needed to save preview images for PDFs)
         
     Returns:
-        str: All text found in the image
+        tuple: (extracted_text, preview_url)
+        - extracted_text: All text found in the image
+        - preview_url: URL to preview image (for PDFs), None for regular images
         
     Example:
-        extract_text_from_receipt("https://storage.googleapis.com/...")
-        → "STARBUCKS\n123 Main St\nTotal: $8.47\n..."
+        extract_text_from_receipt("https://storage.googleapis.com/...", 1)
+        → ("STARBUCKS\n123 Main St\nTotal: $8.47\n...", "https://...preview.png")
     """
     
     try:
@@ -58,17 +65,27 @@ def extract_text_from_receipt(image_url: str) -> str:
         if not verify_blob_exists(gcs_uri):
             raise Exception(f"File not found in GCS: {gcs_uri}")
         
-        # Create Vision API image object from GCS URI
+        preview_url = None  # Track preview URL for PDFs
         
-        # Create Vision API image object from GCS URI
-        image = vision.Image()
-        image.source.image_uri = gcs_uri
-        
-        # Check if file is PDF (needs different method)
+        # Check if file is PDF - convert to image first
         if gcs_uri.lower().endswith('.pdf'):
-            print(f"[DEBUG] Using document_text_detection for PDF")
-            response = vision_client.document_text_detection(image=image)
+            print(f"[DEBUG] PDF detected - converting to image first")
+            image_bytes = convert_pdf_to_image(gcs_uri)
+            
+            # Save the converted image to GCS for frontend display
+            if user_id:
+                from app.services.storage import save_image_to_gcs
+                preview_url = save_image_to_gcs(image_bytes, image_url, user_id)
+                print(f"[DEBUG] Saved preview image: {preview_url}")
+            
+            # Use image bytes directly with Vision API
+            image = vision.Image(content=image_bytes)
+            print(f"[DEBUG] Using text_detection on converted PDF image")
+            response = vision_client.text_detection(image=image)
         else:
+            # For regular images, use GCS URI directly
+            image = vision.Image()
+            image.source.image_uri = gcs_uri
             print(f"[DEBUG] Using text_detection for image")
             response = vision_client.text_detection(image=image)
         
@@ -89,21 +106,77 @@ def extract_text_from_receipt(image_url: str) -> str:
         if response.full_text_annotation:
             full_text = response.full_text_annotation.text
             print(f"[DEBUG] Extracted {len(full_text)} characters from full_text_annotation")
-            return full_text
+            return full_text, preview_url
         elif response.text_annotations:
             # Fallback for text_detection method
             full_text = response.text_annotations[0].description
             print(f"[DEBUG] Extracted {len(full_text)} characters from text_annotations")
-            return full_text
+            return full_text, preview_url
         else:
             print(f"[DEBUG] No text found in response")
-            return ""
+            return "", preview_url
             
     except Exception as e:
         print(f"[DEBUG] Exception type: {type(e).__name__}")
         print(f"[DEBUG] Exception details: {str(e)}")
         print(f"Error extracting text: {str(e)}")
         raise
+
+
+def convert_pdf_to_image(gcs_uri: str) -> bytes:
+    """
+    Convert PDF from GCS to image bytes.
+    
+    Args:
+        gcs_uri: GCS URI like gs://bucket/path/to/file.pdf
+        
+    Returns:
+        bytes: PNG image bytes of first page
+    """
+    try:
+        print(f"[DEBUG] Converting PDF to image: {gcs_uri}")
+        
+        # Parse gs:// URI
+        uri_parts = gcs_uri.replace("gs://", "").split("/", 1)
+        bucket_name = uri_parts[0]
+        blob_path = uri_parts[1]
+        
+        # Download PDF from GCS
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        pdf_bytes = blob.download_as_bytes()
+        
+        print(f"[DEBUG] Downloaded PDF, size: {len(pdf_bytes)} bytes")
+        
+        # Open PDF with PyMuPDF
+        pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        
+        # Get first page (most receipts are single page)
+        first_page = pdf_document[0]
+        
+        # Render page to image at high DPI for better OCR
+        # 300 DPI is good for OCR
+        zoom = 300 / 72  # 72 is default DPI
+        mat = fitz.Matrix(zoom, zoom)
+        pix = first_page.get_pixmap(matrix=mat)
+        
+        # Convert to PIL Image
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        
+        # Convert to PNG bytes
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='PNG', optimize=True)
+        img_bytes = img_bytes.getvalue()
+        
+        pdf_document.close()
+        
+        print(f"[DEBUG] Converted to PNG, size: {len(img_bytes)} bytes")
+        return img_bytes
+        
+    except Exception as e:
+        print(f"[DEBUG] Error converting PDF: {str(e)}")
+        raise Exception(f"Failed to convert PDF to image: {str(e)}")
 
 
 def verify_blob_exists(gcs_uri: str) -> bool:
@@ -170,14 +243,27 @@ def parse_receipt_with_ai(raw_text: str) -> dict:
     
     try:
         # Prompt for GPT to parse the receipt
-        system_prompt = """You are a receipt parser specialized in UK receipts. Extract structured data from receipt text.
+        system_prompt = """You are a receipt parser specialized in UK receipts. Extract structured data from receipt text and categorize expenses according to HMRC allowable expense categories.
         
+HMRC Expense Categories:
+- Office Costs: Stationery, phone bills, internet, software
+- Travel Costs: Fuel, parking, train/bus fares, taxis, business mileage
+- Clothing: Uniforms, protective clothing (not everyday clothes)
+- Staff Costs: Salaries, subcontractor costs, wages
+- Stock and Materials: Things you buy to sell on, raw materials
+- Financial Costs: Insurance, bank charges, professional subscriptions
+- Business Premises: Heating, lighting, business rates, rent
+- Advertising and Marketing: Website costs, promotional materials, advertising
+- Training and Development: Business-related courses, professional development
+- Other: Any other business expense not fitting above categories
+
 Rules:
 - Extract vendor name (business name)
 - Extract date in YYYY-MM-DD format
 - Extract total amount as a number (no £ or $ symbol)
 - Extract VAT/tax amount if present (look for "VAT", "Tax", "GST")
 - Extract individual items with names and prices
+- Auto-categorize based on vendor and items (use category names exactly as listed above)
 - If you can't find something, use null
 - For UK receipts, VAT is typically 20% and shown separately
 
@@ -193,12 +279,14 @@ Required JSON format:
     "date": "YYYY-MM-DD or null",
     "total_amount": number or null,
     "tax_amount": number or null,
+    "category": "HMRC category name or null",
     "items": [
         {{"name": "string", "price": number}}
     ]
 }}
 
-Note: Look for VAT amount on UK receipts - it's usually labeled as "VAT" or "Tax"."""
+Note: Look for VAT amount on UK receipts - it's usually labeled as "VAT" or "Tax". 
+Categorize based on vendor and items purchased using the HMRC categories provided."""
 
         # Call OpenAI API
         response = openai_client.chat.completions.create(
@@ -224,6 +312,7 @@ Note: Look for VAT amount on UK receipts - it's usually labeled as "VAT" or "Tax
             "date": None,
             "total_amount": None,
             "tax_amount": None,
+            "category": None,
             "items": []
         }
     
@@ -261,9 +350,14 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         receipt.status = ReceiptStatus.PROCESSING
         db.commit()
         
-        # Step 1: Extract text from image
+        # Step 1: Extract text from image (and get preview URL if PDF)
         print(f"Extracting text from receipt {receipt_id}...")
-        raw_text = extract_text_from_receipt(receipt.image_url)
+        raw_text, preview_url = extract_text_from_receipt(receipt.image_url, receipt.user_id)
+        
+        # If PDF was converted, update image_url to point to preview
+        if preview_url:
+            print(f"[DEBUG] Updating image_url to preview: {preview_url}")
+            receipt.image_url = preview_url
         
         # Save raw text to database
         receipt.ocr_raw_text = raw_text
@@ -294,12 +388,27 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
             # Store items as JSON string
             receipt.items = json.dumps(parsed_data["items"])
         
-        # Mark as completed
-        receipt.status = ReceiptStatus.COMPLETED
+        if parsed_data.get("category"):
+            # Map AI category to ExpenseCategory enum
+            from app.models.receipt import ExpenseCategory
+            category_str = parsed_data["category"]
+            
+            # Try to match to enum value
+            try:
+                # Find enum by value (display name)
+                for cat in ExpenseCategory:
+                    if cat.value == category_str:
+                        receipt.category = cat
+                        break
+            except:
+                pass  # Keep null if category doesn't match
+        
+        # Mark as PENDING (awaiting user review and approval)
+        receipt.status = ReceiptStatus.PENDING
         db.commit()
         db.refresh(receipt)
         
-        print(f"Receipt {receipt_id} processed successfully!")
+        print(f"Receipt {receipt_id} processed successfully! Awaiting user review.")
         return receipt
         
     except Exception as e:

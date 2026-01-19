@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func, extract
 from typing import List
+from datetime import datetime, date
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.models.receipt import Receipt, ReceiptStatus
+from app.models.receipt import Receipt, ReceiptStatus, ExpenseCategory
 from app.schemas.receipt import ReceiptCreate, ReceiptUpdate, ReceiptResponse
 from app.services.storage import upload_file_to_gcs, delete_file_from_gcs
 from app.services.ocr import process_receipt_ocr
@@ -160,6 +162,137 @@ def list_receipts(
     return receipts
 
 
+@router.get("/analytics")
+def get_receipt_analytics(
+    start_date: str = None,
+    end_date: str = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get expense analytics and breakdown by HMRC category.
+    
+    Returns comprehensive analytics including:
+    - Total spending by category
+    - Category breakdown with percentages
+    - Monthly trends
+    - Tax year summaries
+    
+    Query Parameters:
+        start_date: Filter from date (YYYY-MM-DD) - optional
+        end_date: Filter to date (YYYY-MM-DD) - optional
+    
+    Example Request:
+        GET /api/v1/receipts/analytics?start_date=2025-04-06&end_date=2026-04-05
+    
+    Example Response:
+        {
+            "total_amount": 15234.50,
+            "total_vat": 2539.08,
+            "receipt_count": 156,
+            "categories": [
+                {
+                    "category": "Travel Costs",
+                    "total": 4532.20,
+                    "vat": 755.37,
+                    "count": 45,
+                    "percentage": 29.8
+                },
+                ...
+            ],
+            "monthly_breakdown": [
+                {
+                    "month": "2025-04",
+                    "total": 1234.50,
+                    "count": 12
+                },
+                ...
+            ]
+        }
+    """
+    
+    # Base query - only completed receipts
+    query = db.query(Receipt).filter(
+        Receipt.user_id == current_user.id,
+        Receipt.status == ReceiptStatus.COMPLETED
+    )
+    
+    # Apply date filters if provided
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Receipt.date >= start)
+        except:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Receipt.date <= end)
+        except:
+            pass
+    
+    receipts = query.all()
+    
+    # Calculate totals
+    total_amount = sum(r.total_amount or 0 for r in receipts)
+    total_vat = sum(r.tax_amount or 0 for r in receipts)
+    receipt_count = len(receipts)
+    
+    # Category breakdown
+    category_stats = {}
+    for receipt in receipts:
+        cat = receipt.category.value if receipt.category else "Uncategorized"
+        
+        if cat not in category_stats:
+            category_stats[cat] = {
+                "category": cat,
+                "total": 0,
+                "vat": 0,
+                "count": 0
+            }
+        
+        category_stats[cat]["total"] += receipt.total_amount or 0
+        category_stats[cat]["vat"] += receipt.tax_amount or 0
+        category_stats[cat]["count"] += 1
+    
+    # Add percentages
+    for cat_data in category_stats.values():
+        cat_data["percentage"] = round((cat_data["total"] / total_amount * 100), 1) if total_amount > 0 else 0
+    
+    # Sort by total (highest first)
+    categories = sorted(category_stats.values(), key=lambda x: x["total"], reverse=True)
+    
+    # Monthly breakdown
+    monthly_stats = {}
+    for receipt in receipts:
+        if receipt.date:
+            month_key = receipt.date.strftime("%Y-%m")
+            
+            if month_key not in monthly_stats:
+                monthly_stats[month_key] = {
+                    "month": month_key,
+                    "total": 0,
+                    "vat": 0,
+                    "count": 0
+                }
+            
+            monthly_stats[month_key]["total"] += receipt.total_amount or 0
+            monthly_stats[month_key]["vat"] += receipt.tax_amount or 0
+            monthly_stats[month_key]["count"] += 1
+    
+    # Sort by month
+    monthly_breakdown = sorted(monthly_stats.values(), key=lambda x: x["month"])
+    
+    return {
+        "total_amount": round(total_amount, 2),
+        "total_vat": round(total_vat, 2),
+        "receipt_count": receipt_count,
+        "categories": categories,
+        "monthly_breakdown": monthly_breakdown
+    }
+
+
 @router.get("/{receipt_id}", response_model=ReceiptResponse)
 def get_receipt(
     receipt_id: int, 
@@ -195,7 +328,7 @@ def get_receipt(
     return receipt
 
 
-@router.put("/receipt_id", response_model=ReceiptResponse)
+@router.put("/{receipt_id}", response_model=ReceiptResponse)
 def update_receipt(
     receipt_id: int,
     receipt_data: ReceiptUpdate, 
@@ -241,7 +374,50 @@ def update_receipt(
     return receipt
 
 
-@router.delete("/receipt_id", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{receipt_id}/approve", response_model=ReceiptResponse)
+def approve_receipt(
+    receipt_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Approve a receipt after reviewing OCR results.
+    
+    Changes status from PENDING to COMPLETED.
+    User must review and confirm the extracted data is correct.
+    
+    Example Request:
+        POST /api/v1/receipts/1/approve
+    
+    Errors:
+        404: Receipt not found
+        400: Receipt not in PENDING status
+    """
+    receipt = db.query(Receipt).filter(
+        Receipt.id == receipt_id,
+        Receipt.user_id == current_user.id
+    ).first()
+
+    if not receipt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Receipt not found"
+        )
+    
+    if receipt.status != ReceiptStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Receipt is not pending approval (current status: {receipt.status})"
+        )
+    
+    receipt.status = ReceiptStatus.COMPLETED
+    db.commit()
+    db.refresh(receipt)
+    
+    return receipt
+
+
+@router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_receipt(
     receipt_id: int, 
     current_user: User = Depends(get_current_user),

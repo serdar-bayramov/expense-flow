@@ -2,6 +2,7 @@ from google.cloud import storage
 from fastapi import UploadFile, HTTPException
 import uuid
 import os
+import io
 from datetime import timedelta
 from app.core.database import settings
 
@@ -110,3 +111,35 @@ def delete_file_from_gcs(file_url: str) -> bool:
         # File might not exist, log but don't crash
         print(f"Failed to delete file {file_url}: {str(e)}")
         return False
+
+
+def save_image_to_gcs(image_bytes: bytes, original_url: str, user_id: int) -> str:
+    """
+    Save converted image bytes to GCS (for PDF previews).
+    
+    Args:
+        image_bytes: PNG image bytes
+        original_url: Original file URL (to derive the preview name)
+        user_id: User ID for organizing files
+        
+    Returns:
+        str: Public URL of the saved image
+    """
+    try:
+        # Extract original filename and replace .pdf with _preview.png
+        blob_name = original_url.split(f"{settings.GCS_BUCKET_NAME}/")[-1]
+        preview_blob_name = blob_name.replace('.pdf', '_preview.png').replace('.PDF', '_preview.png')
+        
+        # Get bucket
+        bucket = storage_client.bucket(settings.GCS_BUCKET_NAME)
+        blob = bucket.blob(preview_blob_name)
+        
+        # Upload image bytes
+        blob.upload_from_file(io.BytesIO(image_bytes), content_type='image/png')
+        
+        print(f"[DEBUG] Saved preview image to: {preview_blob_name}")
+        return blob.public_url
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to save preview image: {str(e)}")
+        raise Exception(f"Failed to save preview image: {str(e)}")

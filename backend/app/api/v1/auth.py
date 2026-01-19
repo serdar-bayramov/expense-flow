@@ -18,7 +18,7 @@ def generate_unique_receipt_email(email: str, db: Session) -> str:
     
     Example:
         Input: "sarah@gmail.com"
-        Output: "sarah-x8k2@receipts.yourapp.com"
+        Output: "sarah-x8k2@receipts.xpense.com"
     
     Logic:
         1. Take username part from email (sarah)
@@ -30,7 +30,7 @@ def generate_unique_receipt_email(email: str, db: Session) -> str:
     while True:
         # Generate random 4-character code (lowercase + digits)
         random_code = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-        unique_email = f"{username}-{random_code}@receipts.yourapp.com"
+        unique_email = f"{username}-{random_code}@receipts.xpense.com"
         
         # Check if this email already exists
         existing = db.query(User).filter(User.unique_receipt_email == unique_email).first()
@@ -63,7 +63,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             "id": 1,
             "email": "sarah@gmail.com",
             "full_name": "Sarah Johnson",
-            "unique_receipt_email": "sarah-x8k2@receipts.yourapp.com",
+            "unique_receipt_email": "sarah-x8k2@receipts.xpense.com",
             "is_active": true,
             "created_at": "2026-01-10T12:00:00Z"
         }
