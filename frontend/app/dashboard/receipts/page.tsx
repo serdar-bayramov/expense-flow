@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag } from 'lucide-react';
+import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive } from 'lucide-react';
 import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory } from '@/lib/api';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -22,13 +22,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type StatusFilter = 'all' | 'pending' | 'completed' | 'failed';
+type StatusFilter = 'all' | 'pending' | 'completed' | 'failed' | 'deleted';
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string; // string for tax years
 
 export default function ReceiptsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [allReceipts, setAllReceipts] = useState<Receipt[]>([]);
+  const [deletedReceipts, setDeletedReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -85,8 +86,10 @@ export default function ReceiptsPage() {
       if (!token) return;
 
       try {
-        const data = await receiptsAPI.getAll(token);
-        setAllReceipts(data);
+        const activeData = await receiptsAPI.getAll(token);
+        const deletedData = await receiptsAPI.getDeleted(token);
+        setAllReceipts(activeData);
+        setDeletedReceipts(deletedData);
       } catch (error) {
         console.error('Failed to fetch receipts:', error);
       } finally {
@@ -99,10 +102,12 @@ export default function ReceiptsPage() {
 
   // Apply filters whenever receipts, status, date, or search changes
   useEffect(() => {
-    let filtered = [...allReceipts];
+    // Use active or deleted receipts based on status filter
+    const sourceReceipts = statusFilter === 'deleted' ? deletedReceipts : allReceipts;
+    let filtered = [...sourceReceipts];
 
-    // Filter by status
-    if (statusFilter !== 'all') {
+    // Filter by status (skip if viewing deleted)
+    if (statusFilter !== 'all' && statusFilter !== 'deleted') {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
 
@@ -172,7 +177,7 @@ export default function ReceiptsPage() {
 
     setFilteredReceipts(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [allReceipts, statusFilter, dateFilter, categoryFilter, searchQuery, customFromDate, customToDate]);
+  }, [allReceipts, deletedReceipts, statusFilter, dateFilter, categoryFilter, searchQuery, customFromDate, customToDate]);
 
   // Pagination
   const totalPages = Math.ceil(filteredReceipts.length / receiptsPerPage);
@@ -202,6 +207,7 @@ export default function ReceiptsPage() {
 
   const getStatusCount = (status: StatusFilter) => {
     if (status === 'all') return allReceipts.length;
+    if (status === 'deleted') return deletedReceipts.length;
     return allReceipts.filter(r => r.status === status).length;
   };
 
@@ -220,12 +226,13 @@ export default function ReceiptsPage() {
     try {
       await receiptsAPI.delete(token, receiptToDelete.id);
       
-      // Remove from state
+      // Move from active to deleted
       setAllReceipts(prev => prev.filter(r => r.id !== receiptToDelete.id));
+      setDeletedReceipts(prev => [...prev, receiptToDelete]);
       
       toast({
         title: 'Receipt deleted',
-        description: 'The receipt has been permanently deleted.',
+        description: 'The receipt has been moved to Deleted. You can restore it if needed.',
       });
     } catch (error) {
       console.error('Failed to delete receipt:', error);
@@ -240,11 +247,39 @@ export default function ReceiptsPage() {
     }
   };
 
+  const handleRestore = async (receipt: Receipt, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const restored = await receiptsAPI.restore(token, receipt.id);
+      
+      // Move from deleted to active
+      setDeletedReceipts(prev => prev.filter(r => r.id !== receipt.id));
+      setAllReceipts(prev => [...prev, restored]);
+      
+      toast({
+        title: 'Receipt restored',
+        description: 'The receipt has been successfully restored.',
+      });
+    } catch (error) {
+      console.error('Failed to restore receipt:', error);
+      toast({
+        title: 'Failed to restore',
+        description: 'Could not restore the receipt. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const statusTabs: { label: string; value: StatusFilter }[] = [
     { label: 'All', value: 'all' },
     { label: 'Pending Review', value: 'pending' },
     { label: 'Completed', value: 'completed' },
     { label: 'Failed', value: 'failed' },
+    { label: 'Deleted', value: 'deleted' },
   ];
 
   const taxYears = getTaxYears();
@@ -430,8 +465,10 @@ export default function ReceiptsPage() {
             {paginatedReceipts.map((receipt) => (
               <Card 
                 key={receipt.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer relative group"
-                onClick={() => router.push(`/dashboard/receipts/${receipt.id}`)}
+                className={`hover:shadow-lg transition-shadow relative group ${
+                  statusFilter === 'deleted' ? 'opacity-60' : 'cursor-pointer'
+                }`}
+                onClick={statusFilter === 'deleted' ? undefined : () => router.push(`/dashboard/receipts/${receipt.id}`)}
               >
                 <CardContent className="pt-6">
                   {/* Receipt Image */}
@@ -445,14 +482,25 @@ export default function ReceiptsPage() {
                       {receipt.status}
                     </Badge>
                     
-                    {/* Delete Button */}
-                    <button
-                      onClick={(e) => handleDeleteClick(receipt, e)}
-                      className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Delete receipt"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {/* Show Restore button for deleted receipts, Delete button for active ones */}
+                    {statusFilter === 'deleted' ? (
+                      <button
+                        onClick={(e) => handleRestore(receipt, e)}
+                        className="absolute top-2 left-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-sm font-medium"
+                        title="Restore receipt"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        <span>Restore</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => handleDeleteClick(receipt, e)}
+                        className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete receipt"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Receipt Details */}
@@ -484,6 +532,14 @@ export default function ReceiptsPage() {
                         <span className="text-gray-700 dark:text-gray-300">
                           £{receipt.tax_amount.toFixed(2)}
                         </span>
+                      </div>
+                    )}
+                    
+                    {/* Show deleted date for deleted receipts */}
+                    {statusFilter === 'deleted' && receipt.deleted_at && (
+                      <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 pt-2 border-t dark:border-gray-700">
+                        <Archive className="h-3 w-3" />
+                        <span>Deleted {format(new Date(receipt.deleted_at), 'MMM dd, yyyy')}</span>
                       </div>
                     )}
                   </div>
@@ -557,10 +613,10 @@ export default function ReceiptsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the receipt from <strong>{receiptToDelete?.vendor || 'Unknown Vendor'}</strong>
+              This will move the receipt from <strong>{receiptToDelete?.vendor || 'Unknown Vendor'}</strong>
               {receiptToDelete?.total_amount && (
                 <span> for <strong>£{receiptToDelete.total_amount.toFixed(2)}</strong></span>
-              )}. This action cannot be undone.
+              )} to deleted status. You can restore it later by filtering to "Deleted" receipts.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

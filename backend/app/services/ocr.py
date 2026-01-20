@@ -338,6 +338,7 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         5. Update receipt with parsed data
         6. Set status to COMPLETED (or FAILED on error)
     """
+    from app.services.audit import log_status_change, log_ocr_completed
     
     # Get receipt from database
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
@@ -347,8 +348,10 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
     
     try:
         # Update status to PROCESSING
+        old_status = receipt.status.value
         receipt.status = ReceiptStatus.PROCESSING
         db.commit()
+        log_status_change(db, receipt_id, old_status, receipt.status.value)
         
         # Step 1: Extract text from image (and get preview URL if PDF)
         print(f"Extracting text from receipt {receipt_id}...")
@@ -368,25 +371,32 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         parsed_data = parse_receipt_with_ai(raw_text)
         
         # Step 3: Update receipt with parsed data
+        extracted_fields = {}
+        
         if parsed_data.get("vendor"):
             receipt.vendor = parsed_data["vendor"]
+            extracted_fields["vendor"] = parsed_data["vendor"]
         
         if parsed_data.get("date"):
             # Parse date string to datetime
             try:
                 receipt.date = datetime.strptime(parsed_data["date"], "%Y-%m-%d").date()
+                extracted_fields["date"] = parsed_data["date"]
             except:
                 pass  # Keep null if date parsing fails
         
         if parsed_data.get("total_amount") is not None:
             receipt.total_amount = float(parsed_data["total_amount"])
+            extracted_fields["total_amount"] = parsed_data["total_amount"]
         
         if parsed_data.get("tax_amount") is not None:
             receipt.tax_amount = float(parsed_data["tax_amount"])
+            extracted_fields["tax_amount"] = parsed_data["tax_amount"]
         
         if parsed_data.get("items"):
             # Store items as JSON string
             receipt.items = json.dumps(parsed_data["items"])
+            extracted_fields["items"] = parsed_data["items"]
         
         if parsed_data.get("category"):
             # Map AI category to ExpenseCategory enum
@@ -399,13 +409,20 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
                 for cat in ExpenseCategory:
                     if cat.value == category_str:
                         receipt.category = cat
+                        extracted_fields["category"] = category_str
                         break
             except:
                 pass  # Keep null if category doesn't match
         
         # Mark as PENDING (awaiting user review and approval)
+        old_status = receipt.status.value
         receipt.status = ReceiptStatus.PENDING
         db.commit()
+        
+        # Log OCR completion and status change
+        log_ocr_completed(db, receipt_id, extracted_fields)
+        log_status_change(db, receipt_id, old_status, receipt.status.value)
+        
         db.refresh(receipt)
         
         print(f"Receipt {receipt_id} processed successfully! Awaiting user review.")
@@ -413,8 +430,10 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         
     except Exception as e:
         # Mark as failed on any error
+        old_status = receipt.status.value
         receipt.status = ReceiptStatus.FAILED
         db.commit()
+        log_status_change(db, receipt_id, old_status, receipt.status.value)
         
         print(f"Failed to process receipt {receipt_id}: {str(e)}")
         raise

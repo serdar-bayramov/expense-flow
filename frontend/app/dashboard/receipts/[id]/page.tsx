@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle, Loader2, Pencil, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, CheckCircle, Loader2, Pencil, AlertTriangle, FileText, Clock } from 'lucide-react';
 import { receiptsAPI, Receipt, EXPENSE_CATEGORIES, ExpenseCategory } from '@/lib/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { ReceiptHistory } from '@/components/receipt-history';
 
 export default function ReceiptDetailPage() {
   const params = useParams();
@@ -183,204 +185,223 @@ export default function ReceiptDetailPage() {
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Receipt Image */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="dark:text-white">Receipt Image</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-              <img
-                src={receipt.image_url}
-                alt="Receipt"
-                className="w-full h-auto"
-              />
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="details" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Details
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            History
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Editable Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="dark:text-white">
-              {isPending 
-                ? 'Review & Edit Details' 
-                : isEditing 
-                  ? 'Editing Receipt' 
-                  : 'Receipt Information'
-              }
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Warning banner when editing completed receipt */}
-            {isCompleted && isEditing && (
-              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md flex items-start gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800 dark:text-yellow-300">
-                  <p className="font-medium">Editing completed receipt</p>
-                  <p className="text-yellow-700 dark:text-yellow-400">Make sure changes are accurate before saving.</p>
+        <TabsContent value="details" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Receipt Image */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="dark:text-white">Receipt Image</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <img
+                    src={receipt.image_url}
+                    alt="Receipt"
+                    className="w-full h-auto"
+                  />
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
-            <div className="space-y-4">
-              {/* Vendor */}
-              <div>
-                <Label htmlFor="vendor" className="mb-2 block dark:text-gray-300">Vendor</Label>
-                <Input
-                  id="vendor"
-                  value={formData.vendor}
-                  onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  placeholder="Enter vendor name"
-                  disabled={!isFormEditable}
-                />
-              </div>
+            {/* Editable Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="dark:text-white">
+                  {isPending 
+                    ? 'Review & Edit Details' 
+                    : isEditing 
+                      ? 'Editing Receipt' 
+                      : 'Receipt Information'
+                  }
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Warning banner when editing completed receipt */}
+                {isCompleted && isEditing && (
+                  <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                    <div className="text-sm text-yellow-800 dark:text-yellow-300">
+                      <p className="font-medium">Editing completed receipt</p>
+                      <p className="text-yellow-700 dark:text-yellow-400">Make sure changes are accurate before saving.</p>
+                    </div>
+                  </div>
+                )}
 
-              {/* Date */}
-              <div>
-                <Label htmlFor="date" className="mb-2 block dark:text-gray-300">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  disabled={!isFormEditable}
-                />
-              </div>
+                <div className="space-y-4">
+                  {/* Vendor */}
+                  <div>
+                    <Label htmlFor="vendor" className="mb-2 block dark:text-gray-300">Vendor</Label>
+                    <Input
+                      id="vendor"
+                      value={formData.vendor}
+                      onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                      placeholder="Enter vendor name"
+                      disabled={!isFormEditable}
+                    />
+                  </div>
 
-              {/* Total Amount */}
-              <div>
-                <Label htmlFor="total_amount" className="mb-2 block dark:text-gray-300">Total Amount (£)</Label>
-                <Input
-                  id="total_amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.total_amount}
-                  onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
-                  placeholder="0.00"
-                  disabled={!isFormEditable}
-                />
-              </div>
+                  {/* Date */}
+                  <div>
+                    <Label htmlFor="date" className="mb-2 block dark:text-gray-300">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      disabled={!isFormEditable}
+                    />
+                  </div>
 
-              {/* VAT Amount */}
-              <div>
-                <Label htmlFor="tax_amount" className="mb-2 block dark:text-gray-300">VAT Amount (£)</Label>
-                <Input
-                  id="tax_amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.tax_amount}
-                  onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
-                  placeholder="0.00"
-                  disabled={!isFormEditable}
-                />
-              </div>
+                  {/* Total Amount */}
+                  <div>
+                    <Label htmlFor="total_amount" className="mb-2 block dark:text-gray-300">Total Amount (£)</Label>
+                    <Input
+                      id="total_amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.total_amount}
+                      onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                      placeholder="0.00"
+                      disabled={!isFormEditable}
+                    />
+                  </div>
 
-              {/* Category */}
-              <div>
-                <Label htmlFor="category" className="mb-2 block dark:text-gray-300">HMRC Expense Category</Label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  disabled={!isFormEditable}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
-                >
-                  <option value="">Select a category...</option>
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Choose the HMRC allowable expense category
-                </p>
-              </div>
+                  {/* VAT Amount */}
+                  <div>
+                    <Label htmlFor="tax_amount" className="mb-2 block dark:text-gray-300">VAT Amount (£)</Label>
+                    <Input
+                      id="tax_amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.tax_amount}
+                      onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
+                      placeholder="0.00"
+                      disabled={!isFormEditable}
+                    />
+                  </div>
 
-              {/* Notes */}
-              <div>
-                <Label htmlFor="notes" className="mb-2 block dark:text-gray-300">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Add any additional notes..."
-                  rows={3}
-                  disabled={!isFormEditable}
-                />
-              </div>
+                  {/* Category */}
+                  <div>
+                    <Label htmlFor="category" className="mb-2 block dark:text-gray-300">HMRC Expense Category</Label>
+                    <select
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      disabled={!isFormEditable}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Select a category...</option>
+                      {EXPENSE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Choose the HMRC allowable expense category
+                    </p>
+                  </div>
 
-              {/* Action Buttons */}
-              <div className="pt-4">
-                {isPending ? (
-                  <Button
-                    onClick={handleApprove}
-                    disabled={approving}
-                    className="w-full"
-                  >
-                    {approving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving & Approving...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Approve & Complete
-                      </>
-                    )}
-                  </Button>
-                ) : isCompleted ? (
-                  isEditing ? (
-                    <div className="flex gap-2">
+                  {/* Notes */}
+                  <div>
+                    <Label htmlFor="notes" className="mb-2 block dark:text-gray-300">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Add any additional notes..."
+                      rows={3}
+                      disabled={!isFormEditable}
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-4">
+                    {isPending ? (
                       <Button
-                        onClick={() => setIsEditing(false)}
-                        variant="outline"
-                        disabled={saving}
-                        className="flex-1"
+                        onClick={handleApprove}
+                        disabled={approving}
+                        className="w-full"
                       >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveChanges}
-                        disabled={saving}
-                        className="flex-1"
-                      >
-                        {saving ? (
+                        {approving ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
+                            Saving & Approving...
                           </>
                         ) : (
                           <>
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Save Changes
+                            Approve & Complete
                           </>
                         )}
                       </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit Receipt
-                    </Button>
-                  )
-                ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    This receipt is {receipt.status}.
+                    ) : isCompleted ? (
+                      isEditing ? (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setIsEditing(false)}
+                            variant="outline"
+                            disabled={saving}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleSaveChanges}
+                            disabled={saving}
+                            className="flex-1"
+                          >
+                            {saving ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Save Changes
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => setIsEditing(true)}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Receipt
+                        </Button>
+                      )
+                    ) : (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                        This receipt is {receipt.status}.
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <ReceiptHistory receiptId={receiptId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

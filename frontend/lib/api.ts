@@ -117,6 +117,7 @@ export interface Receipt {
   ocr_raw_text: string | null;
   created_at: string;
   updated_at: string | null;
+  deleted_at: string | null;  // For soft delete
 }
 
 export interface ReceiptUpdate {
@@ -152,6 +153,23 @@ export interface AnalyticsResponse {
   receipt_count: number;
   categories: CategoryBreakdown[];
   monthly_breakdown: MonthlyBreakdown[];
+}
+
+// Audit History types
+export interface AuditEvent {
+  id: number;
+  timestamp: string;
+  event_type: 'created' | 'status_changed' | 'field_updated' | 'approved' | 'deleted' | 'ocr_completed';
+  actor: string; // 'user', 'system', 'system:ocr', 'system:email'
+  field_name: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  extra_data: Record<string, any> | null;
+}
+
+export interface AuditHistoryResponse {
+  receipt_id: number;
+  events: AuditEvent[];
 }
 
 // Receipts API calls
@@ -246,6 +264,36 @@ export const receiptsAPI = {
     if (endDate) params.append('end_date', endDate);
 
     const response = await api.get(`/api/v1/receipts/analytics?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Get audit history for a receipt
+  getHistory: async (token: string, id: number): Promise<AuditHistoryResponse> => {
+    const response = await api.get(`/api/v1/receipts/${id}/history`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Get all deleted receipts
+  getDeleted: async (token: string): Promise<Receipt[]> => {
+    const response = await api.get('/api/v1/receipts/deleted/list', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Restore a deleted receipt
+  restore: async (token: string, id: number): Promise<Receipt> => {
+    const response = await api.post(`/api/v1/receipts/${id}/restore`, {}, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
