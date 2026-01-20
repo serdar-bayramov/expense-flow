@@ -178,7 +178,7 @@ export function UploadReceiptModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Upload Receipts</DialogTitle>
+          <DialogTitle className="dark:text-white">Upload Receipts</DialogTitle>
         </DialogHeader>
 
         {files.length === 0 && (
@@ -188,22 +188,22 @@ export function UploadReceiptModal({
               border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
               transition-colors
               ${isDragActive
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400'
+                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'
               }
               ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
             <input {...getInputProps()} />
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-300 mb-4" />
             {isDragActive ? (
-              <p className="text-sm text-gray-600">Drop your receipts here...</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Drop your receipts here...</p>
             ) : (
               <>
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   Drag & drop receipts here, or click to select
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   JPG, PNG, or PDF (max 10MB each) • Multiple files supported
                 </p>
               </>
@@ -216,15 +216,15 @@ export function UploadReceiptModal({
             {files.map((fileStatus, index) => (
               <div
                 key={index}
-                className="border rounded-lg p-3 space-y-2"
+                className="border dark:border-gray-700 rounded-lg p-3 space-y-2"
               >
                 <div className="flex items-center gap-3">
                   {getStatusIcon(fileStatus.status)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-sm font-medium truncate dark:text-white">
                       {fileStatus.file.name}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {getStatusText(fileStatus.status)}
                       {fileStatus.error && ` - ${fileStatus.error}`}
                     </p>

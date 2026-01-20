@@ -57,18 +57,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-800 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold dark:text-white">Welcome back</CardTitle>
+          <CardDescription className="dark:text-gray-400">
             Enter your email to sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -80,7 +80,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="dark:text-gray-300">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -99,9 +99,9 @@ export default function LoginPage() {
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm dark:text-gray-300">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-blue-600 hover:underline">
+            <Link href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline">
               Sign up
             </Link>
           </div>

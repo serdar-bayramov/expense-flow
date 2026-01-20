@@ -81,10 +81,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Welcome back{user?.full_name ? `, ${user.full_name}` : ''}!
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-300">
           Here's what's happening with your expenses
         </p>
       </div>
@@ -93,14 +93,14 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
               Total Receipts
             </CardTitle>
             <ReceiptPoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalReceipts}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">{stats.totalReceipts}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {stats.totalReceipts === 0 ? 'Start uploading' : 'All time'}
             </p>
           </CardContent>
@@ -108,14 +108,14 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
               Total Spent
             </CardTitle>
             <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£{stats.totalSpent.toFixed(2)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">£{stats.totalSpent.toFixed(2)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               All time
             </p>
           </CardContent>
@@ -123,29 +123,29 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
               Total VAT
             </CardTitle>
             <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£{(stats.totalVAT || 0).toFixed(2)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">£{(stats.totalVAT || 0).toFixed(2)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               All time
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-800">
+            <CardTitle className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
               Pending Review
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">{stats.pendingReview || 0}</div>
-            <p className="text-xs text-yellow-700 mt-1">
+            <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{stats.pendingReview || 0}</div>
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
               {stats.pendingReview === 0 ? 'All caught up!' : 'Need approval'}
             </p>
           </CardContent>
@@ -159,11 +159,11 @@ export default function DashboardPage() {
             <CardTitle>📧 Your Receipt Email</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               Forward receipts to this email and they'll automatically appear in your account:
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm font-mono">
+              <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono dark:text-white">
                 {user.unique_receipt_email}
               </code>
               <button
@@ -188,8 +188,8 @@ export default function DashboardPage() {
           {receipts.length === 0 ? (
             <div className="text-center py-12">
               <ReceiptPoundSterling className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">No recent receipts</h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No recent receipts</h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Upload receipts to see them here
               </p>
             </div>
@@ -198,11 +198,11 @@ export default function DashboardPage() {
               {receipts.map((receipt) => (
                 <div
                   key={receipt.id}
-                  className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer dark:border-gray-700"
                   onClick={() => router.push(`/dashboard/receipts/${receipt.id}`)}
                 >
                   {/* Receipt Image Thumbnail */}
-                  <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden shrink-0">
                     <img
                       src={receipt.image_url}
                       alt={receipt.vendor || 'Receipt'}
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Store className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span className="font-medium text-gray-900 truncate">
+                      <span className="font-medium text-gray-900 dark:text-white truncate">
                         {receipt.vendor || 'Unknown Vendor'}
                       </span>
                       <Badge className={`ml-auto ${getStatusColor(receipt.status)}`}>
@@ -222,7 +222,7 @@ export default function DashboardPage() {
                       </Badge>
                     </div>
                     {receipt.date && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(receipt.date), 'MMM dd, yyyy')}
                       </div>
@@ -231,11 +231,11 @@ export default function DashboardPage() {
 
                   {/* Amount */}
                   <div className="text-right shrink-0">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
                       {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
                     </div>
                     {receipt.tax_amount && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         VAT: £{receipt.tax_amount.toFixed(2)}
                       </div>
                     )}

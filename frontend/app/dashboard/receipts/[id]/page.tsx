@@ -150,7 +150,7 @@ export default function ReceiptDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400 dark:text-gray-300" />
       </div>
     );
   }
@@ -176,7 +176,7 @@ export default function ReceiptDetailPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Receipt Details</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receipt Details</h1>
         </div>
         <Badge className={getStatusColor(receipt.status)}>
           {receipt.status}
@@ -187,10 +187,10 @@ export default function ReceiptDetailPage() {
         {/* Receipt Image */}
         <Card>
           <CardHeader>
-            <CardTitle>Receipt Image</CardTitle>
+            <CardTitle className="dark:text-white">Receipt Image</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-100 rounded-lg overflow-hidden">
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
               <img
                 src={receipt.image_url}
                 alt="Receipt"
@@ -203,7 +203,7 @@ export default function ReceiptDetailPage() {
         {/* Editable Form */}
         <Card>
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="dark:text-white">
               {isPending 
                 ? 'Review & Edit Details' 
                 : isEditing 
@@ -215,11 +215,11 @@ export default function ReceiptDetailPage() {
           <CardContent>
             {/* Warning banner when editing completed receipt */}
             {isCompleted && isEditing && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-start gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800">
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-800 dark:text-yellow-300">
                   <p className="font-medium">Editing completed receipt</p>
-                  <p className="text-yellow-700">Make sure changes are accurate before saving.</p>
+                  <p className="text-yellow-700 dark:text-yellow-400">Make sure changes are accurate before saving.</p>
                 </div>
               </div>
             )}
@@ -227,7 +227,7 @@ export default function ReceiptDetailPage() {
             <div className="space-y-4">
               {/* Vendor */}
               <div>
-                <Label htmlFor="vendor">Vendor</Label>
+                <Label htmlFor="vendor" className="mb-2 block dark:text-gray-300">Vendor</Label>
                 <Input
                   id="vendor"
                   value={formData.vendor}
@@ -239,7 +239,7 @@ export default function ReceiptDetailPage() {
 
               {/* Date */}
               <div>
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date" className="mb-2 block dark:text-gray-300">Date</Label>
                 <Input
                   id="date"
                   type="date"
@@ -251,7 +251,7 @@ export default function ReceiptDetailPage() {
 
               {/* Total Amount */}
               <div>
-                <Label htmlFor="total_amount">Total Amount (£)</Label>
+                <Label htmlFor="total_amount" className="mb-2 block dark:text-gray-300">Total Amount (£)</Label>
                 <Input
                   id="total_amount"
                   type="number"
@@ -265,7 +265,7 @@ export default function ReceiptDetailPage() {
 
               {/* VAT Amount */}
               <div>
-                <Label htmlFor="tax_amount">VAT Amount (£)</Label>
+                <Label htmlFor="tax_amount" className="mb-2 block dark:text-gray-300">VAT Amount (£)</Label>
                 <Input
                   id="tax_amount"
                   type="number"
@@ -279,13 +279,13 @@ export default function ReceiptDetailPage() {
 
               {/* Category */}
               <div>
-                <Label htmlFor="category">HMRC Expense Category</Label>
+                <Label htmlFor="category" className="mb-2 block dark:text-gray-300">HMRC Expense Category</Label>
                 <select
                   id="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   disabled={!isFormEditable}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   <option value="">Select a category...</option>
                   {EXPENSE_CATEGORIES.map((cat) => (
@@ -294,14 +294,14 @@ export default function ReceiptDetailPage() {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Choose the HMRC allowable expense category
                 </p>
               </div>
 
               {/* Notes */}
               <div>
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes" className="mb-2 block dark:text-gray-300">Notes</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
@@ -372,7 +372,7 @@ export default function ReceiptDetailPage() {
                     </Button>
                   )
                 ) : (
-                  <div className="text-sm text-gray-500 text-center">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
                     This receipt is {receipt.status}.
                   </div>
                 )}

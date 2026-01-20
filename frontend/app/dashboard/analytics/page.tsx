@@ -97,8 +97,8 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="mt-2 text-gray-600">Analyze your expenses by category</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Analyze your expenses by category</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
@@ -114,7 +114,7 @@ export default function AnalyticsPage() {
   }
 
   if (!analytics) {
-    return <div>No data available</div>;
+    return <div className="dark:text-white">No data available</div>;
   }
 
   // Prepare data for charts
@@ -122,6 +122,7 @@ export default function AnalyticsPage() {
     name: cat.category,
     value: cat.total,
     count: cat.count,
+    percentage: cat.percentage,
   }));
 
   const barChartData = analytics.monthly_breakdown.map((month) => ({
@@ -135,8 +136,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="mt-2 text-gray-600">Analyze your expenses by HMRC category</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
         </div>
       </div>
 
@@ -144,7 +145,7 @@ export default function AnalyticsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-gray-400" />
+            <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-300" />
             <select
               value={dateFilter}
               onChange={(e) => {
@@ -155,7 +156,7 @@ export default function AnalyticsPage() {
                   setCustomToDate('');
                 }
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full max-w-md px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white"
             >
               <option value="all">All Time</option>
               <option value="week">Last 7 Days</option>
@@ -178,21 +179,21 @@ export default function AnalyticsPage() {
           {dateFilter === 'custom' && (
             <div className="flex items-center gap-3 mt-3">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">From</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
                 <input
                   type="date"
                   value={customFromDate}
                   onChange={(e) => setCustomFromDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-transparent dark:bg-input/30 dark:text-white"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">To</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
                 <input
                   type="date"
                   value={customToDate}
                   onChange={(e) => setCustomToDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-transparent dark:bg-input/30 dark:text-white"
                 />
               </div>
             </div>
@@ -204,12 +205,12 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Total Expenses</CardTitle>
+            <TrendingUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£{analytics.total_amount.toFixed(2)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">£{analytics.total_amount.toFixed(2)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Across {analytics.receipt_count} receipts
             </p>
           </CardContent>
@@ -217,12 +218,12 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total VAT</CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Total VAT</CardTitle>
+            <FileText className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">£{analytics.total_vat.toFixed(2)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">£{analytics.total_vat.toFixed(2)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {((analytics.total_vat / analytics.total_amount) * 100).toFixed(1)}% of total
             </p>
           </CardContent>
@@ -230,12 +231,12 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <PieChartIcon className="h-4 w-4 text-gray-600" />
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Categories</CardTitle>
+            <PieChartIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.categories.length}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <div className="text-2xl font-bold dark:text-white">{analytics.categories.length}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Expense categories used
             </p>
           </CardContent>
@@ -247,20 +248,20 @@ export default function AnalyticsPage() {
         {/* Category Breakdown - Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Expenses by Category</CardTitle>
-            <CardDescription>Breakdown of spending across HMRC categories</CardDescription>
+            <CardTitle className="dark:text-white">Expenses by Category</CardTitle>
+            <CardDescription className="dark:text-gray-400">Breakdown of spending across HMRC categories</CardDescription>
           </CardHeader>
           <CardContent>
             {pieChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
                     data={pieChartData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    label={false}
+                    outerRadius={140}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -270,11 +271,17 @@ export default function AnalyticsPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => `£${value.toFixed(2)}`}
+                    contentStyle={{ fontSize: '12px' }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '11px' }}
+                    iconSize={8}
+                    formatter={(value, entry: any) => `${value} (${entry.payload.percentage}%)`}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-75 text-gray-500">
+              <div className="flex items-center justify-center h-75 text-gray-500 dark:text-gray-400">
                 No category data available
               </div>
             )}
@@ -284,26 +291,26 @@ export default function AnalyticsPage() {
         {/* Category List */}
         <Card>
           <CardHeader>
-            <CardTitle>Category Details</CardTitle>
-            <CardDescription>Detailed breakdown with amounts and counts</CardDescription>
+            <CardTitle className="dark:text-white">Category Details</CardTitle>
+            <CardDescription className="dark:text-gray-400">Detailed breakdown with amounts and counts</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-75 overflow-y-auto">
               {analytics.categories.map((cat, index) => (
-                <div key={cat.category} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div key={cat.category} className="flex items-center justify-between py-2 border-b last:border-0 dark:border-gray-700">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     />
                     <div>
-                      <p className="font-medium text-sm">{cat.category}</p>
-                      <p className="text-xs text-gray-500">{cat.count} receipts</p>
+                      <p className="font-medium text-sm dark:text-white">{cat.category}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{cat.count} receipts</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-sm">£{cat.total.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500">{cat.percentage}%</p>
+                    <p className="font-bold text-sm dark:text-white">£{cat.total.toFixed(2)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{cat.percentage}%</p>
                   </div>
                 </div>
               ))}
@@ -316,8 +323,8 @@ export default function AnalyticsPage() {
       {barChartData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Spending Trend</CardTitle>
-            <CardDescription>Total expenses and VAT by month</CardDescription>
+            <CardTitle className="dark:text-white">Monthly Spending Trend</CardTitle>
+            <CardDescription className="dark:text-gray-400">Total expenses and VAT by month</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

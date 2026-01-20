@@ -44,18 +44,18 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-800 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold dark:text-white">Create an account</CardTitle>
+          <CardDescription className="dark:text-gray-400">
             Enter your details to get started with Expense Flow
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name (optional)</Label>
+              <Label htmlFor="fullName" className="dark:text-gray-300">Full Name (optional)</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -66,7 +66,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -78,7 +78,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="dark:text-gray-300">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -89,7 +89,7 @@ export default function SignupPage() {
                 minLength={6}
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Must be at least 6 characters
               </p>
             </div>
@@ -102,9 +102,9 @@ export default function SignupPage() {
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm dark:text-gray-300">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline">
+            <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
               Sign in
             </Link>
           </div>

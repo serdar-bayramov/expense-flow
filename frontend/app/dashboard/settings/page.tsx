@@ -33,14 +33,14 @@ export default function SettingsPage() {
   };
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="dark:text-white">Loading...</div>;
   }
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">
           Manage your account settings and preferences
         </p>
       </div>
@@ -48,22 +48,22 @@ export default function SettingsPage() {
       {/* Profile */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Your account information</CardDescription>
+          <CardTitle className="dark:text-white">Profile</CardTitle>
+          <CardDescription className="dark:text-gray-400">Your account information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
             <Input
               id="email"
               type="email"
               value={user.email}
               disabled
-              className="bg-gray-50"
+              className="bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
+            <Label htmlFor="fullName" className="dark:text-gray-300">Full Name</Label>
             <Input
               id="fullName"
               type="text"
@@ -71,7 +71,7 @@ export default function SettingsPage() {
               placeholder="Enter your name"
               disabled
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Name editing coming soon
             </p>
           </div>
@@ -81,14 +81,14 @@ export default function SettingsPage() {
       {/* Receipt Email */}
       <Card>
         <CardHeader>
-          <CardTitle>Receipt Forwarding Email</CardTitle>
-          <CardDescription>
+          <CardTitle className="dark:text-white">Receipt Forwarding Email</CardTitle>
+          <CardDescription className="dark:text-gray-400">
             Forward receipts to this email to automatically add them to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm font-mono">
+            <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg text-sm font-mono">
               {user.unique_receipt_email}
             </code>
             <Button
@@ -104,10 +104,10 @@ export default function SettingsPage() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="border-red-200 dark:border-red-900">
         <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
+          <CardDescription className="dark:text-gray-400">
             Irreversible actions
           </CardDescription>
         </CardHeader>

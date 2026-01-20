@@ -7,22 +7,37 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { receiptsAPI, Receipt } from '@/lib/api';
+import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag } from 'lucide-react';
+import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory } from '@/lib/api';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type StatusFilter = 'all' | 'pending' | 'completed' | 'failed';
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string; // string for tax years
 
 export default function ReceiptsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [allReceipts, setAllReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [receiptToDelete, setReceiptToDelete] = useState<Receipt | null>(null);
   
   // Filter and pagination state
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [customFromDate, setCustomFromDate] = useState('');
   const [customToDate, setCustomToDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');  const [currentPage, setCurrentPage] = useState(1);
@@ -141,6 +156,11 @@ export default function ReceiptsPage() {
       }
     }
 
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(r => r.category === categoryFilter);
+    }
+
     // Filter by search query (vendor name or amount)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -152,7 +172,7 @@ export default function ReceiptsPage() {
 
     setFilteredReceipts(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [allReceipts, statusFilter, dateFilter, searchQuery, customFromDate, customToDate]);
+  }, [allReceipts, statusFilter, dateFilter, categoryFilter, searchQuery, customFromDate, customToDate]);
 
   // Pagination
   const totalPages = Math.ceil(filteredReceipts.length / receiptsPerPage);
@@ -185,6 +205,41 @@ export default function ReceiptsPage() {
     return allReceipts.filter(r => r.status === status).length;
   };
 
+  const handleDeleteClick = (receipt: Receipt, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    setReceiptToDelete(receipt);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!receiptToDelete) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      await receiptsAPI.delete(token, receiptToDelete.id);
+      
+      // Remove from state
+      setAllReceipts(prev => prev.filter(r => r.id !== receiptToDelete.id));
+      
+      toast({
+        title: 'Receipt deleted',
+        description: 'The receipt has been permanently deleted.',
+      });
+    } catch (error) {
+      console.error('Failed to delete receipt:', error);
+      toast({
+        title: 'Failed to delete',
+        description: 'Could not delete the receipt. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setReceiptToDelete(null);
+    }
+  };
+
   const statusTabs: { label: string; value: StatusFilter }[] = [
     { label: 'All', value: 'all' },
     { label: 'Pending Review', value: 'pending' },
@@ -197,28 +252,50 @@ export default function ReceiptsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Receipts</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receipts</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">
           Manage and organize all your receipts
         </p>
       </div>
 
-      {/* Search and Date Filter */}
+      {/* Search and Filters */}
       <div className="flex gap-3">
-        <div className="relative flex-1">
+        <div className="relative w-130">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search by vendor or amount..."
+            placeholder="Search vendor or amount..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
         
+        {/* Category Filter Dropdown */}
+        <div className="relative">
+          <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300 pointer-events-none z-10" />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer min-w-50"
+          >
+            <option value="all">All Categories</option>
+            {EXPENSE_CATEGORY_OPTIONS.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="h-4 w-4 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+        
         {/* Date Filter Dropdown */}
         <div className="relative">
-          <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+          <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300 pointer-events-none z-10" />
           <select
             value={dateFilter}
             onChange={(e) => {
@@ -229,7 +306,7 @@ export default function ReceiptsPage() {
                 setCustomToDate('');
               }
             }}
-            className="pl-10 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer min-w-45"
+            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer min-w-45"
           >
             <option value="all">All Time</option>
             <option value="week">Last 7 Days</option>
@@ -255,7 +332,7 @@ export default function ReceiptsPage() {
             <option value="custom">Custom Range</option>
           </select>
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
@@ -264,9 +341,9 @@ export default function ReceiptsPage() {
 
       {/* Custom Date Range Inputs */}
       {dateFilter === 'custom' && (
-        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-md border">
+        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-md border dark:border-gray-600">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">From</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
             <Input
               type="date"
               value={customFromDate}
@@ -275,7 +352,7 @@ export default function ReceiptsPage() {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">To</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
             <Input
               type="date"
               value={customToDate}
@@ -287,7 +364,7 @@ export default function ReceiptsPage() {
       )}
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b dark:border-gray-700">
         {statusTabs.map((tab) => {
           const count = getStatusCount(tab.value);
           const isActive = statusFilter === tab.value;
@@ -299,13 +376,13 @@ export default function ReceiptsPage() {
               className={`
                 px-4 py-2 text-sm font-medium border-b-2 transition-colors
                 ${isActive
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }
               `}
             >
               {tab.label}
-              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100">
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                 {count}
               </span>
             </button>
@@ -330,10 +407,10 @@ export default function ReceiptsPage() {
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <ReceiptPoundSterling className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
                 {searchQuery || statusFilter !== 'all' ? 'No receipts found' : 'No receipts yet'}
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 {searchQuery || statusFilter !== 'all'
                   ? 'Try adjusting your filters or search query'
                   : 'Upload your first receipt to get started'}
@@ -344,7 +421,7 @@ export default function ReceiptsPage() {
       ) : (
         <>
           {/* Results info */}
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
             Showing {startIndex + 1}-{Math.min(endIndex, filteredReceipts.length)} of {filteredReceipts.length} receipts
           </div>
 
@@ -353,12 +430,12 @@ export default function ReceiptsPage() {
             {paginatedReceipts.map((receipt) => (
               <Card 
                 key={receipt.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
+                className="hover:shadow-lg transition-shadow cursor-pointer relative group"
                 onClick={() => router.push(`/dashboard/receipts/${receipt.id}`)}
               >
                 <CardContent className="pt-6">
                   {/* Receipt Image */}
-                  <div className="relative h-48 mb-4 bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="relative h-48 mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img
                       src={receipt.image_url}
                       alt={receipt.vendor || 'Receipt'}
@@ -367,35 +444,44 @@ export default function ReceiptsPage() {
                     <Badge className={`absolute top-2 right-2 ${getStatusColor(receipt.status)}`}>
                       {receipt.status}
                     </Badge>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={(e) => handleDeleteClick(receipt, e)}
+                      className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete receipt"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
 
                   {/* Receipt Details */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Store className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-white">
                         {receipt.vendor || 'Unknown Vendor'}
                       </span>
                     </div>
 
                     {receipt.date && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         {format(new Date(receipt.date), 'MMM dd, yyyy')}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <span className="text-sm text-gray-500">Total</span>
-                      <span className="text-lg font-bold text-gray-900">
+                    <div className="flex items-center justify-between pt-2 border-t dark:border-gray-700">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
                         {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
                       </span>
                     </div>
 
                     {receipt.tax_amount && (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">VAT</span>
-                        <span className="text-gray-700">
+                        <span className="text-gray-500 dark:text-gray-400">VAT</span>
+                        <span className="text-gray-700 dark:text-gray-300">
                           £{receipt.tax_amount.toFixed(2)}
                         </span>
                       </div>
@@ -464,6 +550,30 @@ export default function ReceiptsPage() {
           )}
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the receipt from <strong>{receiptToDelete?.vendor || 'Unknown Vendor'}</strong>
+              {receiptToDelete?.total_amount && (
+                <span> for <strong>£{receiptToDelete.total_amount.toFixed(2)}</strong></span>
+              )}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

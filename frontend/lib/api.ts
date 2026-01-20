@@ -96,6 +96,11 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   'Other',
 ];
 
+export const EXPENSE_CATEGORY_OPTIONS = EXPENSE_CATEGORIES.map(cat => ({
+  value: cat,
+  label: cat,
+}));
+
 export interface Receipt {
   id: number;
   user_id: number;
