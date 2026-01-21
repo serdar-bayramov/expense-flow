@@ -23,3 +23,4 @@ class User(Base):
     
     # Relationships
     receipts = relationship("Receipt", back_populates="owner", cascade="all, delete-orphan")
+    mileage_claims = relationship("MileageClaim", back_populates="owner", cascade="all, delete-orphan")

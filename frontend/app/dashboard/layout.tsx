@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -61,6 +61,7 @@ export default function DashboardLayout({
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Receipts', href: '/dashboard/receipts', icon: ReceiptPoundSterling },
+    { name: 'Mileage', href: '/dashboard/mileage', icon: Car },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];

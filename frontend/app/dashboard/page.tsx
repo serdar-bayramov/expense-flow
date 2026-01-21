@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle } from 'lucide-react';
-import { authAPI, receiptsAPI, Receipt } from '@/lib/api';
+import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car } from 'lucide-react';
+import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [mileageStats, setMileageStats] = useState<MileageStats | null>(null);
   const [stats, setStats] = useState({
     totalReceipts: 0,
     totalSpent: 0,
@@ -29,8 +30,13 @@ export default function DashboardPage() {
         const userData = await authAPI.me(token);
         setUser(userData);
 
-        // Fetch all receipts
-        const allReceipts = await receiptsAPI.getAll(token);
+        // Fetch all receipts and mileage stats
+        const [allReceipts, mileageData] = await Promise.all([
+          receiptsAPI.getAll(token),
+          mileageAPI.getStats(token).catch(() => null) // Don't fail if mileage API fails
+        ]);
+        
+        setMileageStats(mileageData);
         
         // Get receipts from last 7 days based on upload date (created_at)
         const sevenDaysAgo = new Date();
@@ -151,6 +157,41 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mileage Stats (if available) */}
+      {mileageStats && mileageStats.total_claims > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              Mileage Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Claims</p>
+                <p className="text-2xl font-bold">{mileageStats.total_claims}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Miles</p>
+                <p className="text-2xl font-bold">{mileageStats.total_miles.toFixed(0)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Claimed</p>
+                <p className="text-2xl font-bold text-green-600">£{mileageStats.total_amount.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tax Year Miles</p>
+                <p className="text-2xl font-bold">{mileageStats.current_tax_year_miles.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {mileageStats.current_rate_for_new_claim === 0.45 ? 'At 45p/mile' : 'At 25p/mile'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Receipt Email Card */}
       {user?.unique_receipt_email && (

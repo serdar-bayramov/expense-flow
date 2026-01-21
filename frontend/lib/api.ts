@@ -302,4 +302,131 @@ export const receiptsAPI = {
   },
 };
 
+// Mileage Types
+export interface MileageClaim {
+  id: string;
+  date: string;
+  start_location: string;
+  end_location: string;
+  start_lat?: number;
+  start_lng?: number;
+  end_lat?: number;
+  end_lng?: number;
+  distance_miles: number;
+  vehicle_type: 'car' | 'motorcycle' | 'bicycle';
+  is_round_trip: boolean;
+  hmrc_rate: number;
+  claim_amount: number;
+  business_purpose: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MileageStats {
+  total_claims: number;
+  total_miles: number;
+  total_amount: number;
+  current_tax_year_miles: number;
+  current_rate_for_new_claim: number;
+}
+
+export interface DistanceCalculation {
+  distance_miles: number;
+  start_lat: number;
+  start_lng: number;
+  end_lat: number;
+  end_lng: number;
+  duration_text: string;
+}
+
+export interface CreateMileageClaimData {
+  date: string;
+  start_location: string;
+  end_location: string;
+  vehicle_type: 'car' | 'motorcycle' | 'bicycle';
+  business_purpose: string;
+  is_round_trip: boolean;
+}
+
+// Mileage API calls
+export const mileageAPI = {
+  // Get mileage statistics
+  getStats: async (token: string): Promise<MileageStats> => {
+    const response = await api.get('/api/v1/mileage/stats', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // List all mileage claims
+  list: async (token: string, params?: {
+    vehicle_type?: string;
+    from_date?: string;
+    to_date?: string;
+  }): Promise<MileageClaim[]> => {
+    const response = await api.get('/api/v1/mileage/claims', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params,
+    });
+    return response.data;
+  },
+
+  // Get single mileage claim
+  get: async (token: string, id: string): Promise<MileageClaim> => {
+    const response = await api.get(`/api/v1/mileage/claims/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Calculate distance between two locations
+  calculateDistance: async (token: string, start: string, end: string, vehicleType: string = 'car'): Promise<DistanceCalculation> => {
+    const response = await api.post('/api/v1/mileage/calculate-distance', {
+      start_location: start,
+      end_location: end,
+      vehicle_type: vehicleType,
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Create new mileage claim
+  create: async (token: string, data: CreateMileageClaimData): Promise<MileageClaim> => {
+    const response = await api.post('/api/v1/mileage/claims', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Update mileage claim
+  update: async (token: string, id: string, data: Partial<CreateMileageClaimData>): Promise<MileageClaim> => {
+    const response = await api.put(`/api/v1/mileage/claims/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Delete mileage claim
+  delete: async (token: string, id: string): Promise<void> => {
+    await api.delete(`/api/v1/mileage/claims/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
 export default api;

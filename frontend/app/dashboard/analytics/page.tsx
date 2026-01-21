@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { receiptsAPI, AnalyticsResponse } from '@/lib/api';
+import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim } from '@/lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, PieChartIcon, Calendar, FileText } from 'lucide-react';
-import { format, subDays, startOfYear, getYear } from 'date-fns';
+import { TrendingUp, PieChartIcon, Calendar, FileText, Car } from 'lucide-react';
+import { format, subDays, startOfYear, getYear, parseISO } from 'date-fns';
 
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [customFromDate, setCustomFromDate] = useState('');
@@ -60,8 +61,21 @@ export default function AnalyticsPage() {
         }
       }
 
-      const data = await receiptsAPI.getAnalytics(token, startDate, endDate);
-      setAnalytics(data);
+      // Fetch receipts analytics (required)
+      const receiptAnalytics = await receiptsAPI.getAnalytics(token, startDate, endDate);
+      setAnalytics(receiptAnalytics);
+
+      // Fetch mileage claims (optional - don't fail if not available)
+      try {
+        const mileageData = await mileageAPI.list(token, {
+          from_date: startDate,
+          to_date: endDate,
+        });
+        setMileageClaims(mileageData);
+      } catch (mileageError) {
+        console.warn('Failed to fetch mileage claims:', mileageError);
+        setMileageClaims([]);
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
     } finally {
@@ -117,19 +131,61 @@ export default function AnalyticsPage() {
     return <div className="dark:text-white">No data available</div>;
   }
 
-  // Prepare data for charts
-  const pieChartData = analytics.categories.map((cat) => ({
-    name: cat.category,
-    value: cat.total,
-    count: cat.count,
-    percentage: cat.percentage,
-  }));
+  // Calculate mileage totals
+  const totalMileageAmount = mileageClaims.reduce((sum, claim) => sum + claim.claim_amount, 0);
+  const totalMiles = mileageClaims.reduce((sum, claim) => sum + claim.distance_miles, 0);
+  const mileageClaimCount = mileageClaims.length;
 
-  const barChartData = analytics.monthly_breakdown.map((month) => ({
-    month: format(new Date(month.month + '-01'), 'MMM yyyy'),
-    amount: month.total,
-    vat: month.vat,
-  }));
+  // Combined totals (receipts + mileage)
+  const grandTotalAmount = analytics.total_amount + totalMileageAmount;
+  const totalItemCount = analytics.receipt_count + mileageClaimCount;
+
+  // Prepare data for pie chart (categories + mileage)
+  const pieChartData = [
+    ...analytics.categories.map((cat) => ({
+      name: cat.category,
+      value: cat.total,
+      count: cat.count,
+      percentage: ((cat.total / grandTotalAmount) * 100).toFixed(1),
+    })),
+    ...(mileageClaimCount > 0 ? [{
+      name: 'Mileage',
+      value: totalMileageAmount,
+      count: mileageClaimCount,
+      percentage: ((totalMileageAmount / grandTotalAmount) * 100).toFixed(1),
+    }] : [])
+  ];
+
+  // Prepare monthly breakdown data (combine receipts + mileage)
+  const monthlyData = new Map<string, { receipts: number; mileage: number; vat: number }>();
+
+  // Add receipt data
+  analytics.monthly_breakdown.forEach((month) => {
+    monthlyData.set(month.month, {
+      receipts: month.total,
+      mileage: 0,
+      vat: month.vat,
+    });
+  });
+
+  // Add mileage data
+  mileageClaims.forEach((claim) => {
+    const monthKey = format(parseISO(claim.date), 'yyyy-MM');
+    const existing = monthlyData.get(monthKey) || { receipts: 0, mileage: 0, vat: 0 };
+    existing.mileage += claim.claim_amount;
+    monthlyData.set(monthKey, existing);
+  });
+
+  // Convert to array and sort by date
+  const barChartData = Array.from(monthlyData.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, data]) => ({
+      month: format(new Date(month + '-01'), 'MMM yyyy'),
+      receipts: data.receipts,
+      mileage: data.mileage,
+      total: data.receipts + data.mileage,
+      vat: data.vat,
+    }));
 
   return (
     <div className="space-y-6">
@@ -202,29 +258,42 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium dark:text-gray-300">Total Expenses</CardTitle>
             <TrendingUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">£{analytics.total_amount.toFixed(2)}</div>
+            <div className="text-2xl font-bold dark:text-white">£{grandTotalAmount.toFixed(2)}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Across {analytics.receipt_count} receipts
+              {analytics.receipt_count} receipts + {mileageClaimCount} claims
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium dark:text-gray-300">Total VAT</CardTitle>
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Receipt Expenses</CardTitle>
             <FileText className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">£{analytics.total_vat.toFixed(2)}</div>
+            <div className="text-2xl font-bold dark:text-white">£{analytics.total_amount.toFixed(2)}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {((analytics.total_vat / analytics.total_amount) * 100).toFixed(1)}% of total
+              {analytics.receipt_count} receipts • £{analytics.total_vat.toFixed(2)} VAT
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Mileage Claims</CardTitle>
+            <Car className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold dark:text-white">£{totalMileageAmount.toFixed(2)}</div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {mileageClaimCount} claims • {totalMiles.toFixed(1)} miles
             </p>
           </CardContent>
         </Card>
@@ -235,9 +304,9 @@ export default function AnalyticsPage() {
             <PieChartIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">{analytics.categories.length}</div>
+            <div className="text-2xl font-bold dark:text-white">{pieChartData.length}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Expense categories used
+              Expense categories tracked
             </p>
           </CardContent>
         </Card>
@@ -296,21 +365,23 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-75 overflow-y-auto">
-              {analytics.categories.map((cat, index) => (
-                <div key={cat.category} className="flex items-center justify-between py-2 border-b last:border-0 dark:border-gray-700">
+              {pieChartData.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between py-2 border-b last:border-0 dark:border-gray-700">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     />
                     <div>
-                      <p className="font-medium text-sm dark:text-white">{cat.category}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{cat.count} receipts</p>
+                      <p className="font-medium text-sm dark:text-white">{item.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {item.count} {item.name === 'Mileage' ? 'claims' : 'receipts'}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-sm dark:text-white">£{cat.total.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{cat.percentage}%</p>
+                    <p className="font-bold text-sm dark:text-white">£{item.value.toFixed(2)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.percentage}%</p>
                   </div>
                 </div>
               ))}
@@ -324,7 +395,7 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="dark:text-white">Monthly Spending Trend</CardTitle>
-            <CardDescription className="dark:text-gray-400">Total expenses and VAT by month</CardDescription>
+            <CardDescription className="dark:text-gray-400">Receipts, mileage claims, and VAT by month</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -334,9 +405,11 @@ export default function AnalyticsPage() {
                 <YAxis />
                 <Tooltip
                   formatter={(value: number) => `£${value.toFixed(2)}`}
+                  contentStyle={{ fontSize: '12px' }}
                 />
                 <Legend />
-                <Bar dataKey="amount" fill="#3b82f6" name="Total Amount" />
+                <Bar dataKey="receipts" fill="#3b82f6" name="Receipts" stackId="a" />
+                <Bar dataKey="mileage" fill="#f59e0b" name="Mileage" stackId="a" />
                 <Bar dataKey="vat" fill="#10b981" name="VAT" />
               </BarChart>
             </ResponsiveContainer>

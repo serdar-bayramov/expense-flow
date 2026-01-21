@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-from app.api.v1 import auth, users, receipts
+from app.api.v1 import auth, users, receipts, mileage
 
 security = HTTPBearer()
 
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1") 
 app.include_router(receipts.router, prefix="/api/v1")
+app.include_router(mileage.router, prefix="/api/v1/mileage", tags=["Mileage"])
 
 @app.get("/")
 def read_root():

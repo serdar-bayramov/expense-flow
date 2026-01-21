@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str
     GCS_BUCKET_NAME: str
     OPENAI_API_KEY: str
+    GOOGLE_MAPS_API_KEY: str  # For mileage distance calculations
     
     class Config:
         env_file = ".env"
