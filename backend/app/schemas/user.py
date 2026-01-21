@@ -39,3 +39,7 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
 
 
+class DeleteAccountRequest(BaseModel):
+    """Request to delete account with password confirmation (GDPR)"""
+    password: str
+    confirm_text: str  # User must type "DELETE" to confirm

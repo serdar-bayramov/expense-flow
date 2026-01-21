@@ -68,6 +68,20 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  // Delete account (GDPR)
+  deleteAccount: async (token: string, password: string, confirmText: string): Promise<{ message: string }> => {
+    const response = await api.delete('/api/v1/users/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      data: {
+        password,
+        confirm_text: confirmText,
+      },
+    });
+    return response.data;
+  },
 };
 
 // Receipt types
