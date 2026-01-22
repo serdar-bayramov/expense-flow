@@ -53,7 +53,7 @@ export default function MileageDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[37.5rem]">
+      <DialogContent className="sm:max-w-150">
         <DialogHeader>
           <DialogTitle>Mileage Claim Details</DialogTitle>
         </DialogHeader>

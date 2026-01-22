@@ -164,7 +164,7 @@ export default function ManageTemplatesDialog({ open, onOpenChange, templates, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[42rem] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Journey Templates</DialogTitle>
         </DialogHeader>

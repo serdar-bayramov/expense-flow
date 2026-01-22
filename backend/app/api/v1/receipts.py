@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List
 from datetime import datetime, date
+import httpx
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -774,3 +776,51 @@ def restore_receipt(
     )
     
     return receipt
+
+
+@router.get("/{receipt_id}/download-image")
+async def download_receipt_image(
+    receipt_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Download the receipt image file.
+    Proxies the GCS image to avoid CORS issues.
+    """
+    receipt = db.query(Receipt).filter(
+        Receipt.id == receipt_id,
+        Receipt.user_id == current_user.id
+    ).first()
+    
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    
+    if not receipt.image_url:
+        raise HTTPException(status_code=404, detail="Receipt has no image")
+    
+    # Fetch image from GCS
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(receipt.image_url)
+            response.raise_for_status()
+            
+            # Determine content type
+            content_type = response.headers.get('content-type', 'image/jpeg')
+            
+            # Get file extension from URL
+            ext = receipt.image_url.split('.')[-1].split('?')[0]
+            filename = f"receipt-{receipt_id}.{ext}"
+            
+            return StreamingResponse(
+                iter([response.content]),
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"'
+                }
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to download image: {str(e)}"
+        )

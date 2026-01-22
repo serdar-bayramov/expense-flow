@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download } from 'lucide-react';
+import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download, ChevronDown } from 'lucide-react';
 import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory } from '@/lib/api';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type StatusFilter = 'all' | 'pending' | 'completed' | 'failed' | 'deleted';
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string; // string for tax years
@@ -300,10 +306,10 @@ export default function ReceiptsPage() {
     }
   };
 
-  const exportReceipts = () => {
+  const downloadCSV = () => {
     if (filteredReceipts.length === 0) {
       toast({
-        title: 'No receipts to export',
+        title: 'No receipts to download',
         description: 'Try adjusting your filters.',
         variant: 'destructive',
       });
@@ -340,9 +346,185 @@ export default function ReceiptsPage() {
     URL.revokeObjectURL(url);
 
     toast({
-      title: 'Receipts exported',
-      description: `${filteredReceipts.length} receipt(s) exported successfully.`,
+      title: 'CSV downloaded',
+      description: `${filteredReceipts.length} receipt(s) exported to CSV.`,
     });
+  };
+
+  const downloadPDF = async () => {
+    if (filteredReceipts.length === 0) {
+      toast({
+        title: 'No receipts to download',
+        description: 'Try adjusting your filters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Dynamic imports
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(40);
+      doc.text('Receipt Report', 14, 22);
+      
+      // Add metadata
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 30);
+      doc.text(`Total Receipts: ${filteredReceipts.length}`, 14, 36);
+      
+      // Calculate totals
+      const totalAmount = filteredReceipts.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+      const totalVAT = filteredReceipts.reduce((sum, r) => sum + (r.tax_amount || 0), 0);
+      doc.text(`Total Amount: £${totalAmount.toFixed(2)}`, 14, 42);
+      doc.text(`Total VAT: £${totalVAT.toFixed(2)}`, 14, 48);
+      
+      // Prepare table data
+      const tableData = filteredReceipts.map(receipt => [
+        receipt.date ? format(new Date(receipt.date), 'dd/MM/yyyy') : '-',
+        receipt.vendor || '-',
+        receipt.category || '-',
+        `£${(receipt.total_amount || 0).toFixed(2)}`,
+        `£${(receipt.tax_amount || 0).toFixed(2)}`,
+        receipt.status,
+        receipt.notes || '-'
+      ]);
+
+      // Add table
+      autoTable(doc, {
+        startY: 55,
+        head: [['Date', 'Vendor', 'Category', 'Amount', 'VAT', 'Status', 'Notes']],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [59, 130, 246], // Blue
+          textColor: 255,
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250],
+        },
+        columnStyles: {
+          0: { cellWidth: 22 },  // Date
+          1: { cellWidth: 35 },  // Vendor
+          2: { cellWidth: 30 },  // Category
+          3: { cellWidth: 20, halign: 'right' },  // Amount
+          4: { cellWidth: 18, halign: 'right' },  // VAT
+          5: { cellWidth: 20 },  // Status
+          6: { cellWidth: 'auto' },  // Notes
+        },
+      });
+
+      // Save PDF
+      doc.save(`receipts-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+
+      toast({
+        title: 'PDF downloaded',
+        description: `${filteredReceipts.length} receipt(s) exported to PDF.`,
+      });
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      toast({
+        title: 'Download failed',
+        description: 'Failed to generate PDF. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const downloadImages = async () => {
+    const receiptsWithImages = filteredReceipts.filter(r => r.image_url);
+    
+    if (receiptsWithImages.length === 0) {
+      toast({
+        title: 'No images to download',
+        description: 'None of the filtered receipts have images.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Preparing download...',
+      description: 'Fetching and zipping receipt images. This may take a moment.',
+    });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Dynamic import of JSZip
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Fetch all images through backend proxy and add to zip
+      await Promise.all(
+        receiptsWithImages.map(async (receipt, index) => {
+          try {
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/v1/receipts/${receipt.id}/download-image`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              }
+            );
+            
+            if (!response.ok) {
+              console.error(`Failed to download image for receipt ${receipt.id}`);
+              return;
+            }
+            
+            const blob = await response.blob();
+            
+            // Create filename: date-vendor-index.ext
+            const ext = receipt.image_url!.split('.').pop()?.split('?')[0] || 'jpg';
+            const date = receipt.date ? format(new Date(receipt.date), 'yyyy-MM-dd') : 'no-date';
+            const vendor = (receipt.vendor || 'unknown').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+            const filename = `${date}-${vendor}-${index + 1}.${ext}`;
+            
+            zip.file(filename, blob);
+          } catch (error) {
+            console.error(`Failed to download image for receipt ${receipt.id}:`, error);
+          }
+        })
+      );
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt-images-${format(new Date(), 'yyyy-MM-dd')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Images downloaded',
+        description: `${receiptsWithImages.length} receipt image(s) downloaded as ZIP.`,
+      });
+    } catch (error) {
+      console.error('Failed to create ZIP:', error);
+      toast({
+        title: 'Download failed',
+        description: 'Failed to create ZIP file. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const statusTabs: { label: string; value: StatusFilter }[] = [
@@ -364,10 +546,29 @@ export default function ReceiptsPage() {
             Manage and organize all your receipts
           </p>
         </div>
-        <Button onClick={exportReceipts} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export Receipts
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Download Receipts
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={downloadCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Download CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadPDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadImages}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Images (ZIP)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Search and Filters */}

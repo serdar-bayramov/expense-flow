@@ -201,55 +201,56 @@ export default function SettingsPage() {
               <AlertTriangle className="h-5 w-5" />
               Delete Account Permanently?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 text-left">
-              <div>
-                This will <strong>permanently delete</strong> your account and all associated data.
-                This action <strong>cannot be undone</strong>.
-              </div>
-              
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                <div className="text-sm font-medium text-red-800 dark:text-red-400 mb-2">
-                  The following will be deleted:
-                </div>
-                <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
-                  <li>✗ All receipts and images</li>
-                  <li>✗ All mileage claims</li>
-                  <li>✗ All expense history and analytics</li>
-                  <li>✗ Your account information</li>
-                </ul>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label htmlFor="delete-password" className="text-sm font-medium">
-                    Enter your password to confirm
-                  </Label>
-                  <Input
-                    id="delete-password"
-                    type="password"
-                    placeholder="Your password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    className="mt-1.5"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="delete-confirm" className="text-sm font-medium">
-                    Type <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 font-mono">DELETE</code> to confirm
-                  </Label>
-                  <Input
-                    id="delete-confirm"
-                    type="text"
-                    placeholder="DELETE"
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
+            <AlertDialogDescription>
+              This will permanently delete your account and all associated data.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div className="text-sm font-medium text-red-800 dark:text-red-400 mb-2">
+                The following will be deleted:
+              </div>
+              <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                <li>✗ All receipts and images</li>
+                <li>✗ All mileage claims</li>
+                <li>✗ All expense history and analytics</li>
+                <li>✗ Your account information</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div>
+                <Label htmlFor="delete-password" className="text-sm font-medium">
+                  Enter your password to confirm
+                </Label>
+                <Input
+                  id="delete-password"
+                  type="password"
+                  placeholder="Your password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="delete-confirm" className="text-sm font-medium">
+                  Type <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 font-mono">DELETE</code> to confirm
+                </Label>
+                <Input
+                  id="delete-confirm"
+                  type="text"
+                  placeholder="DELETE"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+          </div>
+          
           <AlertDialogFooter>
             <Button
               variant="outline"
