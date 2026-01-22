@@ -412,6 +412,15 @@ def update_receipt(
                 old_value=old_value,
                 new_value=new_value
             )
+    
+    # Check for duplicates if vendor, amount, or date was updated
+    if any(field in update_data for field in ['vendor', 'total_amount', 'date']):
+        from app.services.duplicate_detection import check_for_duplicates
+        try:
+            check_for_duplicates(receipt, db)
+        except Exception as e:
+            # Don't fail update if duplicate check fails
+            print(f"Duplicate detection failed for receipt {receipt_id}: {str(e)}")
 
     return receipt
 
@@ -464,6 +473,16 @@ def approve_receipt(
     log_approval(db, receipt_id, current_user.id)
     log_status_change(db, receipt_id, old_status, receipt.status.value)
     
+    # Check for duplicates on approval (in case data was manually entered)
+    from app.services.duplicate_detection import check_for_duplicates
+    try:
+        is_duplicate = check_for_duplicates(receipt, db)
+        if is_duplicate:
+            print(f"Receipt {receipt_id} flagged as possible duplicate during approval")
+    except Exception as e:
+        # Don't fail approval if duplicate check fails
+        print(f"Duplicate detection failed for receipt {receipt_id}: {str(e)}")
+    
     return receipt
 
 
@@ -510,6 +529,47 @@ def delete_receipt(
     # Can be cleaned up later with a background job
 
     return None # 204 returns no content
+
+
+@router.post("/{receipt_id}/dismiss-duplicate", response_model=ReceiptResponse)
+def dismiss_duplicate(
+    receipt_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Dismiss duplicate warning for a receipt.
+    
+    User confirms that the receipt is not actually a duplicate.
+    Sets duplicate_dismissed=1 so warning won't show again.
+    
+    Example Request:
+        POST /api/v1/receipts/123/dismiss-duplicate
+    
+    Response:
+        Returns updated receipt with duplicate_dismissed=1
+    
+    Errors:
+        404: Receipt not found
+    """
+    receipt = db.query(Receipt).filter(
+        Receipt.id == receipt_id,
+        Receipt.user_id == current_user.id,
+        Receipt.deleted_at.is_(None)
+    ).first()
+    
+    if not receipt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Receipt not found"
+        )
+    
+    # Mark duplicate warning as dismissed
+    receipt.duplicate_dismissed = 1
+    db.commit()
+    db.refresh(receipt)
+    
+    return receipt
 
 
 @router.get("/{receipt_id}/history")

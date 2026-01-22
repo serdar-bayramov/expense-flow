@@ -48,6 +48,11 @@ class Receipt(Base):
     status = Column(Enum(ReceiptStatus), default=ReceiptStatus.PENDING)
     ocr_raw_text = Column(Text, nullable=True)  # Full OCR output for debugging
     
+    # Duplicate detection
+    duplicate_suspect = Column(Integer, default=0)  # 0=no, 1=possible duplicate
+    duplicate_of_id = Column(Integer, ForeignKey("receipts.id"), nullable=True)  # Reference to original
+    duplicate_dismissed = Column(Integer, default=0)  # 0=not reviewed, 1=user confirmed not duplicate
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -5,12 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Car, MapPin, Calendar, PoundSterling, Plus, ArrowRight, Bike, Bike as Motorbike, Trash2, TrendingUp } from 'lucide-react';
-import { mileageAPI, MileageClaim, MileageStats } from '@/lib/api';
+import { Car, MapPin, Calendar, PoundSterling, Plus, ArrowRight, Bike, Bike as Motorbike, Trash2, TrendingUp, Download, Pencil, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { mileageAPI, journeyTemplatesAPI, MileageClaim, MileageStats, JourneyTemplate } from '@/lib/api';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import AddMileageModal from '@/components/add-mileage-modal';
+import EditMileageModal from '@/components/edit-mileage-modal';
+import ManageTemplatesDialog from '@/components/manage-templates-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +31,24 @@ export default function MileagePage() {
   const { toast } = useToast();
   const [claims, setClaims] = useState<MileageClaim[]>([]);
   const [stats, setStats] = useState<MileageStats | null>(null);
+  const [templates, setTemplates] = useState<JourneyTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [claimToEdit, setClaimToEdit] = useState<MileageClaim | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [claimToDelete, setClaimToDelete] = useState<MileageClaim | null>(null);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
   
   // Filters
   const [vehicleFilter, setVehicleFilter] = useState<VehicleFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const claimsPerPage = 10;
 
   useEffect(() => {
     fetchData();
@@ -47,12 +60,19 @@ export default function MileagePage() {
 
     try {
       setLoading(true);
-      const [claimsData, statsData] = await Promise.all([
-        mileageAPI.list(token),
-        mileageAPI.getStats(token)
+      const params: any = {};
+      if (vehicleFilter !== 'all') params.vehicle_type = vehicleFilter;
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+      
+      const [claimsData, statsData, templatesData] = await Promise.all([
+        mileageAPI.list(token, params),
+        mileageAPI.getStats(token),
+        journeyTemplatesAPI.list(token)
       ]);
       setClaims(claimsData);
       setStats(statsData);
+      setTemplates(templatesData);
     } catch (error) {
       console.error('Failed to fetch mileage data:', error);
       toast({
@@ -71,6 +91,21 @@ export default function MileagePage() {
     toast({
       title: 'Success',
       description: 'Mileage claim added successfully'
+    });
+  };
+
+  const handleEditClick = (claim: MileageClaim) => {
+    setClaimToEdit(claim);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = async () => {
+    await fetchData();
+    setEditModalOpen(false);
+    setClaimToEdit(null);
+    toast({
+      title: 'Success',
+      description: 'Mileage claim updated successfully'
     });
   };
 
@@ -104,6 +139,51 @@ export default function MileagePage() {
     }
   };
 
+  const exportMileage = () => {
+    if (filteredClaims.length === 0) {
+      toast({
+        title: 'No mileage claims to export',
+        description: 'Try adjusting your filters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Date', 'Start Location', 'End Location', 'Distance (miles)', 'Vehicle Type', 'Purpose', 'Amount (£)'];
+    const rows = filteredClaims.map(claim => [
+      format(new Date(claim.date), 'yyyy-MM-dd'),
+      claim.start_location,
+      claim.end_location,
+      claim.distance_miles?.toFixed(1) || '0.0',
+      claim.vehicle_type,
+      claim.business_purpose || '',
+      claim.claim_amount?.toFixed(2) || '0.00'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Add UTF-8 BOM for proper encoding
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mileage-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Mileage exported',
+      description: `${filteredClaims.length} claim(s) exported successfully.`,
+    });
+  };
+
   // Filter claims
   const filteredClaims = claims.filter(claim => {
     const matchesVehicle = vehicleFilter === 'all' || claim.vehicle_type === vehicleFilter;
@@ -114,6 +194,22 @@ export default function MileagePage() {
     
     return matchesVehicle && matchesSearch;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredClaims.length / claimsPerPage);
+  const startIndex = (currentPage - 1) * claimsPerPage;
+  const endIndex = startIndex + claimsPerPage;
+  const paginatedClaims = filteredClaims.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [vehicleFilter, searchQuery, fromDate, toDate]);
 
   const getVehicleIcon = (type: string) => {
     switch (type) {
@@ -155,10 +251,16 @@ export default function MileagePage() {
           <h1 className="text-3xl font-bold">Mileage Claims</h1>
           <p className="text-muted-foreground">Track your business mileage and HMRC claims</p>
         </div>
-        <Button onClick={() => setAddModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Mileage
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportMileage} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Export Mileage
+          </Button>
+          <Button onClick={() => setAddModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Mileage
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -216,47 +318,93 @@ export default function MileagePage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search locations or purpose..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
-              />
+          <div className="space-y-4">
+            {/* Search and Vehicle Type Row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search locations or purpose..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={vehicleFilter === 'all' ? 'default' : 'outline'}
+                  onClick={() => setVehicleFilter('all')}
+                  size="sm"
+                >
+                  All
+                </Button>
+                <Button
+                  variant={vehicleFilter === 'car' ? 'default' : 'outline'}
+                  onClick={() => setVehicleFilter('car')}
+                  size="sm"
+                >
+                  <Car className="mr-2 h-4 w-4" />
+                  Car
+                </Button>
+                <Button
+                  variant={vehicleFilter === 'motorcycle' ? 'default' : 'outline'}
+                  onClick={() => setVehicleFilter('motorcycle')}
+                  size="sm"
+                >
+                  <Motorbike className="mr-2 h-4 w-4" />
+                  Bike
+                </Button>
+                <Button
+                  variant={vehicleFilter === 'bicycle' ? 'default' : 'outline'}
+                  onClick={() => setVehicleFilter('bicycle')}
+                  size="sm"
+                >
+                  <Bike className="mr-2 h-4 w-4" />
+                  Bicycle
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={vehicleFilter === 'all' ? 'default' : 'outline'}
-                onClick={() => setVehicleFilter('all')}
-                size="sm"
-              >
-                All
-              </Button>
-              <Button
-                variant={vehicleFilter === 'car' ? 'default' : 'outline'}
-                onClick={() => setVehicleFilter('car')}
-                size="sm"
-              >
-                <Car className="mr-2 h-4 w-4" />
-                Car
-              </Button>
-              <Button
-                variant={vehicleFilter === 'motorcycle' ? 'default' : 'outline'}
-                onClick={() => setVehicleFilter('motorcycle')}
-                size="sm"
-              >
-                <Motorbike className="mr-2 h-4 w-4" />
-                Bike
-              </Button>
-              <Button
-                variant={vehicleFilter === 'bicycle' ? 'default' : 'outline'}
-                onClick={() => setVehicleFilter('bicycle')}
-                size="sm"
-              >
-                <Bike className="mr-2 h-4 w-4" />
-                Bicycle
-              </Button>
+
+            {/* Date Range Row */}
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="from-date" className="text-sm text-muted-foreground">From Date</Label>
+                <Input
+                  id="from-date"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="to-date" className="text-sm text-muted-foreground">To Date</Label>
+                <Input
+                  id="to-date"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={fetchData} variant="default" size="sm">
+                  Apply Filters
+                </Button>
+                {(fromDate || toDate) && (
+                  <Button 
+                    onClick={() => {
+                      setFromDate('');
+                      setToDate('');
+                      // Will trigger useEffect to refetch
+                      setTimeout(fetchData, 0);
+                    }} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    Clear Dates
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -282,75 +430,146 @@ export default function MileagePage() {
             </CardContent>
           </Card>
         ) : (
-          filteredClaims.map((claim) => (
-            <Card key={claim.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-3">
-                    {/* Header with date and vehicle */}
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${getVehicleColor(claim.vehicle_type)}`}>
-                        <div className="text-white">
-                          {getVehicleIcon(claim.vehicle_type)}
+          <>
+            {paginatedClaims.map((claim) => (
+              <Card 
+                key={claim.id} 
+                className="hover:shadow-md transition-shadow"
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-2">
+                      {/* Header with date and vehicle */}
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${getVehicleColor(claim.vehicle_type)}`}>
+                          <div className="text-white">
+                            {getVehicleIcon(claim.vehicle_type)}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">
+                                {format(new Date(claim.date), 'PPP')}
+                              </span>
+                              {claim.is_round_trip && (
+                                <Badge variant="secondary" className="ml-2">Round Trip</Badge>
+                              )}
+                            </div>
+                            {/* Route on same line as date */}
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{claim.start_location}</span>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{claim.end_location}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">
-                            {format(new Date(claim.date), 'PPP')}
-                          </span>
-                          {claim.is_round_trip && (
-                            <Badge variant="secondary" className="ml-2">Round Trip</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Route */}
-                    <div className="flex items-center gap-2 pl-12">
-                      <div className="flex items-center gap-2 flex-1">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{claim.start_location}</span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{claim.end_location}</span>
-                      </div>
-                    </div>
-
-                    {/* Business purpose */}
-                    <div className="pl-12 text-sm text-muted-foreground">
-                      {claim.business_purpose}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-6 pl-12 pt-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Distance:</span>
-                        <span className="font-medium">{claim.distance_miles.toFixed(1)} miles</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Rate:</span>
-                        <span className="font-medium">{(claim.hmrc_rate * 100).toFixed(0)}p/mile</span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                      {/* Stats */}
+                      <div className="flex items-center gap-3 text-sm pl-12">
+                        <span className="text-muted-foreground">{claim.distance_miles.toFixed(1)} mi</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">{(claim.hmrc_rate * 100).toFixed(0)}p/mi</span>
+                        <span className="text-muted-foreground">·</span>
                         <span className="font-bold text-green-600">£{claim.claim_amount.toFixed(2)}</span>
                       </div>
+
+                      {/* Business purpose */}
+                      <div className="pl-12 text-sm text-muted-foreground">
+                        {claim.business_purpose}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(claim);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(claim);
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            ))}
 
-                  {/* Actions */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteClick(claim)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage = 
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1);
+                    
+                    const showEllipsis = 
+                      (page === currentPage - 2 && currentPage > 3) ||
+                      (page === currentPage + 2 && currentPage < totalPages - 2);
+
+                    if (showEllipsis) {
+                      return <span key={page} className="px-2">...</span>;
+                    }
+
+                    if (!showPage) return null;
+
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-10"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
-          ))
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -359,6 +578,24 @@ export default function MileagePage() {
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
         onSuccess={handleAddClaim}
+        templates={templates}
+        onManageTemplates={() => setTemplatesDialogOpen(true)}
+      />
+
+      {/* Edit Mileage Modal */}
+      <EditMileageModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSuccess={handleEditSuccess}
+        claim={claimToEdit}
+      />
+
+      {/* Manage Templates Dialog */}
+      <ManageTemplatesDialog
+        open={templatesDialogOpen}
+        onOpenChange={setTemplatesDialogOpen}
+        templates={templates}
+        onUpdate={fetchData}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -60,6 +60,9 @@ class ReceiptResponse(ReceiptBase):
             "vendor": "Amazon",
             "total_amount": 49.99,
             "status": "completed",
+            "duplicate_suspect": 0,
+            "duplicate_of_id": null,
+            "duplicate_dismissed": 0,
             "created_at": "2026-01-12T10:00:00Z"
         }
     """
@@ -68,6 +71,9 @@ class ReceiptResponse(ReceiptBase):
     image_url: str
     status: ReceiptStatus
     ocr_raw_text: Optional[str] = None
+    duplicate_suspect: int = 0
+    duplicate_of_id: Optional[int] = None
+    duplicate_dismissed: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
     

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive } from 'lucide-react';
+import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download } from 'lucide-react';
 import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory } from '@/lib/api';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -274,6 +274,77 @@ export default function ReceiptsPage() {
     }
   };
 
+  const handleDismissDuplicate = async (receipt: Receipt, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const updated = await receiptsAPI.dismissDuplicate(token, receipt.id);
+      
+      // Update receipt in state
+      setAllReceipts(prev => prev.map(r => r.id === receipt.id ? updated : r));
+      
+      toast({
+        title: 'Duplicate dismissed',
+        description: 'This receipt is confirmed as not a duplicate.',
+      });
+    } catch (error) {
+      console.error('Failed to dismiss duplicate:', error);
+      toast({
+        title: 'Failed to dismiss',
+        description: 'Could not dismiss duplicate warning. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const exportReceipts = () => {
+    if (filteredReceipts.length === 0) {
+      toast({
+        title: 'No receipts to export',
+        description: 'Try adjusting your filters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Date', 'Vendor', 'Category', 'Amount', 'VAT', 'Status', 'Notes'];
+    const rows = filteredReceipts.map(receipt => [
+      receipt.date ? format(new Date(receipt.date), 'yyyy-MM-dd') : '',
+      receipt.vendor || '',
+      receipt.category || '',
+      receipt.total_amount?.toFixed(2) || '',
+      receipt.tax_amount?.toFixed(2) || '',
+      receipt.status,
+      receipt.notes || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Add UTF-8 BOM for proper encoding
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `receipts-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Receipts exported',
+      description: `${filteredReceipts.length} receipt(s) exported successfully.`,
+    });
+  };
+
   const statusTabs: { label: string; value: StatusFilter }[] = [
     { label: 'All', value: 'all' },
     { label: 'Pending Review', value: 'pending' },
@@ -286,11 +357,17 @@ export default function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receipts</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-300">
-          Manage and organize all your receipts
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receipts</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">
+            Manage and organize all your receipts
+          </p>
+        </div>
+        <Button onClick={exportReceipts} variant="outline">
+          <Download className="mr-2 h-4 w-4" />
+          Export Receipts
+        </Button>
       </div>
 
       {/* Search and Filters */}
@@ -532,6 +609,22 @@ export default function ReceiptsPage() {
                         <span className="text-gray-700 dark:text-gray-300">
                           £{receipt.tax_amount.toFixed(2)}
                         </span>
+                      </div>
+                    )}
+                    
+                    {/* Show duplicate warning for suspected duplicates */}
+                    {receipt.duplicate_suspect === 1 && receipt.duplicate_dismissed === 0 && (
+                      <div className="pt-2 border-t dark:border-gray-700">
+                        <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 mb-2">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span>Possible duplicate - Review</span>
+                        </div>
+                        <button
+                          onClick={(e) => handleDismissDuplicate(receipt, e)}
+                          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                        >
+                          Not a duplicate
+                        </button>
                       </div>
                     )}
                     

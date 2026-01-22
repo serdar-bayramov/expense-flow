@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     GCS_BUCKET_NAME: str
     OPENAI_API_KEY: str
     GOOGLE_MAPS_API_KEY: str  # For mileage distance calculations
+    SENDGRID_RECOVERY_CODE: str | None = None  # Optional recovery code
     
     class Config:
         env_file = ".env"

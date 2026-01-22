@@ -423,6 +423,16 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         log_ocr_completed(db, receipt_id, extracted_fields)
         log_status_change(db, receipt_id, old_status, receipt.status.value)
         
+        # Check for duplicates after OCR completes
+        from app.services.duplicate_detection import check_for_duplicates
+        try:
+            is_duplicate = check_for_duplicates(receipt, db)
+            if is_duplicate:
+                print(f"Receipt {receipt_id} flagged as possible duplicate")
+        except Exception as e:
+            # Don't fail OCR if duplicate detection fails
+            print(f"Duplicate detection failed for receipt {receipt_id}: {str(e)}")
+        
         db.refresh(receipt)
         
         print(f"Receipt {receipt_id} processed successfully! Awaiting user review.")

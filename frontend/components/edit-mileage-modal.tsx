@@ -1,30 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { mileageAPI, journeyTemplatesAPI, CreateMileageClaimData, JourneyTemplate } from '@/lib/api';
+import { mileageAPI, CreateMileageClaimData, MileageClaim } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Bike as Motorbike, Bike, Loader2, MapPin, BookmarkPlus, Bookmark, Settings } from 'lucide-react';
+import { Car, Bike as Motorbike, Bike, Loader2, MapPin } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-interface AddMileageModalProps {
+interface EditMileageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  templates?: JourneyTemplate[];
-  onManageTemplates?: () => void;
+  claim: MileageClaim | null;
 }
 
 // Format UK postcode (e.g., "b295ug" -> "B29 5UG")
@@ -78,16 +70,13 @@ const formatLocation = (location: string): string => {
   return capitalizeLocation(trimmed);
 };
 
-export default function AddMileageModal({ open, onOpenChange, onSuccess, templates = [], onManageTemplates }: AddMileageModalProps) {
+export default function EditMileageModal({ open, onOpenChange, onSuccess, claim }: EditMileageModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [calculatingDistance, setCalculatingDistance] = useState(false);
-  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState('');
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   
   const [formData, setFormData] = useState<CreateMileageClaimData>({
-    date: new Date().toISOString().split('T')[0],
+    date: '',
     start_location: '',
     end_location: '',
     vehicle_type: 'car',
@@ -102,28 +91,26 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
     duration: string;
   } | null>(null);
 
-  const handleTemplateSelect = (templateId: string) => {
-    if (!templateId) return;
-    
-    setSelectedTemplateId(templateId);
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
+  // Pre-fill form when claim changes
+  useEffect(() => {
+    if (claim && open) {
       setFormData({
-        ...formData,
-        start_location: template.start_location,
-        end_location: template.end_location,
-        vehicle_type: template.vehicle_type,
-        business_purpose: template.business_purpose,
-        is_round_trip: template.is_round_trip,
+        date: claim.date,
+        start_location: claim.start_location,
+        end_location: claim.end_location,
+        vehicle_type: claim.vehicle_type,
+        business_purpose: claim.business_purpose,
+        is_round_trip: claim.is_round_trip,
       });
-      setDistancePreview(null); // Reset preview to force recalculation
+      // Set initial preview with existing values
+      setDistancePreview({
+        miles: claim.distance_miles,
+        amount: claim.claim_amount,
+        rate: claim.hmrc_rate,
+        duration: 'Current values'
+      });
     }
-  };
-
-  const handleClearTemplate = () => {
-    setSelectedTemplateId('');
-    // Don't clear the form - user might want to keep the data and just deselect the template
-  };
+  }, [claim, open]);
 
   const handleCalculateDistance = async () => {
     if (!formData.start_location || !formData.end_location) {
@@ -179,20 +166,11 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.start_location || !formData.end_location || !formData.business_purpose) {
+    if (!claim || !formData.start_location || !formData.end_location || !formData.business_purpose) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
         description: 'Please fill in all required fields'
-      });
-      return;
-    }
-
-    if (saveAsTemplate && !templateName) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Template Name',
-        description: 'Please enter a name for the template'
       });
       return;
     }
@@ -202,103 +180,33 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
 
     try {
       setLoading(true);
-      
-      // Create the mileage claim
-      await mileageAPI.create(token, formData);
-      
-      // Save as template if checkbox is checked
-      if (saveAsTemplate && templateName) {
-        await journeyTemplatesAPI.create(token, {
-          name: templateName,
-          start_location: formData.start_location,
-          end_location: formData.end_location,
-          vehicle_type: formData.vehicle_type,
-          business_purpose: formData.business_purpose,
-          is_round_trip: formData.is_round_trip,
-        });
-      }
+      await mileageAPI.update(token, claim.id, formData);
       
       // Reset form
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        start_location: '',
-        end_location: '',
-        vehicle_type: 'car',
-        business_purpose: '',
-        is_round_trip: false,
-      });
       setDistancePreview(null);
-      setSaveAsTemplate(false);
-      setTemplateName('');
-      setSelectedTemplateId('');
       
       onSuccess();
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.response?.data?.detail || 'Failed to create mileage claim'
+        description: error.response?.data?.detail || 'Failed to update mileage claim'
       });
     } finally {
       setLoading(false);
     }
   };
 
+  if (!claim) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-137.5 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-150 max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Mileage Claim</DialogTitle>
+          <DialogTitle>Edit Mileage Claim</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          {/* Template Selector */}
-          {templates && templates.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Use Template (Optional)</Label>
-                {onManageTemplates && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onManageTemplates}
-                  >
-                    <Settings className="h-3 w-3 mr-1" />
-                    Manage
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a saved journey..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex items-center gap-2">
-                          <Bookmark className="h-3 w-3" />
-                          <span>{template.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedTemplateId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearTemplate}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-2 flex-1">
           {/* Date */}
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
@@ -318,27 +226,30 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
               value={formData.vehicle_type}
               onValueChange={(value: any) => {
                 setFormData({ ...formData, vehicle_type: value });
-                setDistancePreview(null); // Reset preview when vehicle changes
+                // Reset preview when vehicle changes - needs recalculation
+                if (distancePreview?.duration !== 'Current values') {
+                  setDistancePreview(null);
+                }
               }}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="car" id="car" />
-                <Label htmlFor="car" className="flex items-center gap-2 cursor-pointer">
+                <RadioGroupItem value="car" id="edit-car" />
+                <Label htmlFor="edit-car" className="flex items-center gap-2 cursor-pointer">
                   <Car className="h-4 w-4" />
                   Car (45p/mile)
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="motorcycle" id="motorcycle" />
-                <Label htmlFor="motorcycle" className="flex items-center gap-2 cursor-pointer">
+                <RadioGroupItem value="motorcycle" id="edit-motorcycle" />
+                <Label htmlFor="edit-motorcycle" className="flex items-center gap-2 cursor-pointer">
                   <Motorbike className="h-4 w-4" />
                   Motorcycle (24p)
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bicycle" id="bicycle" />
-                <Label htmlFor="bicycle" className="flex items-center gap-2 cursor-pointer">
+                <RadioGroupItem value="bicycle" id="edit-bicycle" />
+                <Label htmlFor="edit-bicycle" className="flex items-center gap-2 cursor-pointer">
                   <Bike className="h-4 w-4" />
                   Bicycle (20p)
                 </Label>
@@ -357,7 +268,10 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
                 value={formData.start_location}
                 onChange={(e) => {
                   setFormData({ ...formData, start_location: e.target.value });
-                  setDistancePreview(null);
+                  // Reset preview when location changes
+                  if (distancePreview?.duration !== 'Current values') {
+                    setDistancePreview(null);
+                  }
                 }}
                 onBlur={(e) => {
                   const formatted = formatLocation(e.target.value);
@@ -382,7 +296,10 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
                 value={formData.end_location}
                 onChange={(e) => {
                   setFormData({ ...formData, end_location: e.target.value });
-                  setDistancePreview(null);
+                  // Reset preview when location changes
+                  if (distancePreview?.duration !== 'Current values') {
+                    setDistancePreview(null);
+                  }
                 }}
                 onBlur={(e) => {
                   const formatted = formatLocation(e.target.value);
@@ -399,14 +316,17 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
           {/* Round Trip */}
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="roundtrip"
+              id="edit-roundtrip"
               checked={formData.is_round_trip}
               onCheckedChange={(checked) => {
                 setFormData({ ...formData, is_round_trip: checked as boolean });
-                setDistancePreview(null);
+                // Reset preview when round trip changes
+                if (distancePreview?.duration !== 'Current values') {
+                  setDistancePreview(null);
+                }
               }}
             />
-            <Label htmlFor="roundtrip" className="cursor-pointer">
+            <Label htmlFor="edit-roundtrip" className="cursor-pointer">
               Round trip (doubles the distance)
             </Label>
           </div>
@@ -425,32 +345,36 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
                 Calculating...
               </>
             ) : (
-              'Calculate Distance & Preview Claim'
+              'Recalculate Distance & Preview'
             )}
           </Button>
 
           {/* Distance Preview */}
           {distancePreview && (
-            <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-2">
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Distance:</span>
                 <span className="font-medium">{distancePreview.miles.toFixed(1)} miles</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Duration:</span>
-                <span className="font-medium">{distancePreview.duration}</span>
-              </div>
+              {distancePreview.duration !== 'Current values' && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Duration:</span>
+                  <span className="font-medium">{distancePreview.duration}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Rate:</span>
                 <span className="font-medium">{(distancePreview.rate * 100).toFixed(0)}p/mile</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-green-200 dark:border-green-800">
-                <span className="font-medium">Estimated Claim:</span>
-                <span className="font-bold text-green-600">£{distancePreview.amount.toFixed(2)}</span>
+              <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-800">
+                <span className="font-medium">{distancePreview.duration === 'Current values' ? 'Current Claim:' : 'Updated Claim:'}</span>
+                <span className="font-bold text-blue-600">£{distancePreview.amount.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                * Final amount may vary based on your annual mileage
-              </p>
+              {distancePreview.duration !== 'Current values' && (
+                <p className="text-xs text-muted-foreground">
+                  * Final amount may vary based on your annual mileage
+                </p>
+              )}
             </div>
           )}
 
@@ -470,34 +394,6 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
             </p>
           </div>
 
-          {/* Save as Template */}
-          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="save-template"
-                checked={saveAsTemplate}
-                onCheckedChange={(checked) => setSaveAsTemplate(checked as boolean)}
-              />
-              <Label htmlFor="save-template" className="cursor-pointer flex items-center gap-2">
-                <BookmarkPlus className="h-4 w-4" />
-                Save as template for future use
-              </Label>
-            </div>
-            
-            {saveAsTemplate && (
-              <div className="space-y-2 pl-6">
-                <Label htmlFor="template-name">Template Name</Label>
-                <Input
-                  id="template-name"
-                  placeholder="e.g., Home to Office"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  required={saveAsTemplate}
-                />
-              </div>
-            )}
-          </div>
-
           {/* Submit */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -509,14 +405,14 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading || !distancePreview}>
+            <Button type="submit" className="flex-1" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  Updating...
                 </>
               ) : (
-                'Create Claim'
+                'Update Claim'
               )}
             </Button>
           </div>

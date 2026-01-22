@@ -5,12 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim } from '@/lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, PieChartIcon, Calendar, FileText, Car } from 'lucide-react';
+import { TrendingUp, PieChartIcon, Calendar, FileText, Car, Download } from 'lucide-react';
 import { format, subDays, startOfYear, getYear, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
 export default function AnalyticsPage() {
+  const { toast } = useToast();
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +89,108 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalytics();
   }, [dateFilter, customFromDate, customToDate]);
+
+  // Export Tax Year Summary as CSV
+  const exportTaxYearSummary = () => {
+    if (!analytics) return;
+
+    // Get current period description
+    let periodDescription = 'All Time';
+    if (dateFilter.startsWith('tax-')) {
+      const year = parseInt(dateFilter.replace('tax-', ''));
+      periodDescription = `Tax Year ${year}-${year + 1}`;
+    } else if (dateFilter === 'custom' && customFromDate && customToDate) {
+      periodDescription = `${customFromDate} to ${customToDate}`;
+    } else if (dateFilter !== 'all') {
+      periodDescription = dateFilter.charAt(0).toUpperCase() + dateFilter.slice(1);
+    }
+
+    // Calculate totals
+    const totalReceiptAmount = analytics.total_amount;
+    const totalVAT = analytics.total_vat;
+    const totalMileageAmount = mileageClaims.reduce((sum, claim) => sum + claim.claim_amount, 0);
+    const totalMiles = mileageClaims.reduce((sum, claim) => sum + claim.distance_miles, 0);
+    const grandTotal = totalReceiptAmount + totalMileageAmount;
+
+    // Build CSV content
+    let csv = 'Expense Flow - Tax Year Summary\n';
+    csv += `Period:,${periodDescription}\n`;
+    csv += `Generated:,${format(new Date(), 'dd/MM/yyyy HH:mm')}\n`;
+    csv += '\n';
+
+    // Summary Section
+    csv += 'SUMMARY\n';
+    csv += `Total Expenses,£${grandTotal.toFixed(2)}\n`;
+    csv += `Receipt Expenses,£${totalReceiptAmount.toFixed(2)}\n`;
+    csv += `Mileage Claims,£${totalMileageAmount.toFixed(2)}\n`;
+    csv += `Total VAT,£${totalVAT.toFixed(2)}\n`;
+    csv += `Receipt Count,${analytics.receipt_count}\n`;
+    csv += `Mileage Claims Count,${mileageClaims.length}\n`;
+    csv += `Business Miles,${totalMiles.toFixed(1)}\n`;
+    csv += '\n';
+
+    // Expenses by Category
+    csv += 'EXPENSES BY HMRC CATEGORY\n';
+    csv += 'Category,Amount,Percentage,Count\n';
+    analytics.categories.forEach(cat => {
+      csv += `${cat.category},£${cat.total.toFixed(2)},${((cat.total / grandTotal) * 100).toFixed(1)}%,${cat.count}\n`;
+    });
+    if (mileageClaims.length > 0) {
+      csv += `Mileage,£${totalMileageAmount.toFixed(2)},${((totalMileageAmount / grandTotal) * 100).toFixed(1)}%,${mileageClaims.length}\n`;
+    }
+    csv += '\n';
+
+    // Mileage Breakdown
+    if (mileageClaims.length > 0) {
+      csv += 'MILEAGE BREAKDOWN\n';
+      csv += 'Date,From,To,Vehicle,Miles,Rate,Amount,Purpose\n';
+      mileageClaims.forEach(claim => {
+        csv += `${claim.date},${claim.start_location},${claim.end_location},${claim.vehicle_type},${claim.distance_miles.toFixed(1)},£${claim.hmrc_rate.toFixed(2)},£${claim.claim_amount.toFixed(2)},"${claim.business_purpose}"\n`;
+      });
+      csv += '\n';
+    }
+
+    // Monthly Breakdown
+    csv += 'MONTHLY BREAKDOWN\n';
+    csv += 'Month,Receipts,Mileage,Total,VAT\n';
+    const monthlyData = new Map<string, { receipts: number; mileage: number; vat: number }>();
+    
+    analytics.monthly_breakdown.forEach(month => {
+      monthlyData.set(month.month, { receipts: month.total, mileage: 0, vat: month.vat });
+    });
+    
+    mileageClaims.forEach(claim => {
+      const monthKey = format(parseISO(claim.date), 'yyyy-MM');
+      const existing = monthlyData.get(monthKey) || { receipts: 0, mileage: 0, vat: 0 };
+      existing.mileage += claim.claim_amount;
+      monthlyData.set(monthKey, existing);
+    });
+
+    Array.from(monthlyData.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([month, data]) => {
+        const monthLabel = format(new Date(month + '-01'), 'MMM yyyy');
+        csv += `${monthLabel},£${data.receipts.toFixed(2)},£${data.mileage.toFixed(2)},£${(data.receipts + data.mileage).toFixed(2)},£${data.vat.toFixed(2)}\n`;
+      });
+
+    // Download CSV
+    // Add UTF-8 BOM to ensure proper encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `tax-year-summary-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: 'Tax Year Summary Exported',
+      description: 'CSV file downloaded successfully',
+    });
+  };
 
   // Colors for pie chart
   const COLORS = [
@@ -195,6 +300,10 @@ export default function AnalyticsPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
         </div>
+        <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Export Summary
+        </Button>
       </div>
 
       {/* Date Filter */}

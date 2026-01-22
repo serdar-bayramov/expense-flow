@@ -129,6 +129,9 @@ export interface Receipt {
   is_business: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   ocr_raw_text: string | null;
+  duplicate_suspect: number;
+  duplicate_of_id: number | null;
+  duplicate_dismissed: number;
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;  // For soft delete
@@ -257,6 +260,16 @@ export const receiptsAPI = {
     });
   },
 
+  // Dismiss duplicate warning
+  dismissDuplicate: async (token: string, id: number): Promise<Receipt> => {
+    const response = await api.post(`/api/v1/receipts/${id}/dismiss-duplicate`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
   // Approve receipt (change status from pending to completed)
   approve: async (token: string, id: number): Promise<Receipt> => {
     const response = await api.post(`/api/v1/receipts/${id}/approve`, {}, {
@@ -362,6 +375,28 @@ export interface CreateMileageClaimData {
   is_round_trip: boolean;
 }
 
+// Journey Template Types
+export interface JourneyTemplate {
+  id: string;
+  name: string;
+  start_location: string;
+  end_location: string;
+  vehicle_type: 'car' | 'motorcycle' | 'bicycle';
+  business_purpose: string;
+  is_round_trip: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateJourneyTemplateData {
+  name: string;
+  start_location: string;
+  end_location: string;
+  vehicle_type: 'car' | 'motorcycle' | 'bicycle';
+  business_purpose: string;
+  is_round_trip: boolean;
+}
+
 // Mileage API calls
 export const mileageAPI = {
   // Get mileage statistics
@@ -436,6 +471,58 @@ export const mileageAPI = {
   // Delete mileage claim
   delete: async (token: string, id: string): Promise<void> => {
     await api.delete(`/api/v1/mileage/claims/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+};
+
+// Journey Templates API calls
+export const journeyTemplatesAPI = {
+  // List all journey templates
+  list: async (token: string): Promise<JourneyTemplate[]> => {
+    const response = await api.get('/api/v1/mileage/templates', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Get single journey template
+  get: async (token: string, id: string): Promise<JourneyTemplate> => {
+    const response = await api.get(`/api/v1/mileage/templates/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Create new journey template
+  create: async (token: string, data: CreateJourneyTemplateData): Promise<JourneyTemplate> => {
+    const response = await api.post('/api/v1/mileage/templates', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Update journey template
+  update: async (token: string, id: string, data: Partial<CreateJourneyTemplateData>): Promise<JourneyTemplate> => {
+    const response = await api.put(`/api/v1/mileage/templates/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Delete journey template
+  delete: async (token: string, id: string): Promise<void> => {
+    await api.delete(`/api/v1/mileage/templates/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
