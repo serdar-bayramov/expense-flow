@@ -25,6 +25,8 @@ interface AddMileageModalProps {
   onSuccess: () => void;
   templates?: JourneyTemplate[];
   onManageTemplates?: () => void;
+  subscriptionUsage?: any;
+  onUpgradeRequired?: () => void;
 }
 
 // Format UK postcode (e.g., "b295ug" -> "B29 5UG")
@@ -78,7 +80,7 @@ const formatLocation = (location: string): string => {
   return capitalizeLocation(trimmed);
 };
 
-export default function AddMileageModal({ open, onOpenChange, onSuccess, templates = [], onManageTemplates }: AddMileageModalProps) {
+export default function AddMileageModal({ open, onOpenChange, onSuccess, templates = [], onManageTemplates, subscriptionUsage, onUpgradeRequired }: AddMileageModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [calculatingDistance, setCalculatingDistance] = useState(false);
@@ -126,6 +128,15 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
   };
 
   const handleCalculateDistance = async () => {
+    // Check subscription limits
+    if (subscriptionUsage && onUpgradeRequired) {
+      const { mileage_used, mileage_limit } = subscriptionUsage;
+      if (mileage_used >= mileage_limit) {
+        onUpgradeRequired();
+        return;
+      }
+    }
+
     if (!formData.start_location || !formData.end_location) {
       toast({
         variant: 'destructive',

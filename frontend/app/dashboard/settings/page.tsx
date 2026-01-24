@@ -5,10 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { authAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -18,10 +21,29 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+interface SubscriptionUsage {
+  plan: string;
+  receipts_used: number;
+  receipts_limit: number;
+  mileage_used: number;
+  mileage_limit: number;
+  is_beta_tester: boolean;
+  features: {
+    analytics_dashboard: boolean;
+    export_reports: boolean;
+    journey_templates: boolean;
+    advanced_ocr: boolean;
+    export_formats: string[];
+    support_level: string;
+  };
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [usage, setUsage] = useState<SubscriptionUsage | null>(null);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -34,6 +56,15 @@ export default function SettingsPage() {
         try {
           const userData = await authAPI.me(token);
           setUser(userData);
+          
+          // Fetch subscription usage
+          const response = await fetch('http://localhost:8000/api/v1/users/me/subscription', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const usageData = await response.json();
+          setUsage(usageData);
         } catch (error) {
           console.error('Failed to fetch user:', error);
         }
@@ -89,14 +120,147 @@ export default function SettingsPage() {
     return <div className="dark:text-white">Loading...</div>;
   }
 
+  const getPlanIcon = (plan: string) => {
+    switch (plan) {
+      case 'professional': return Sparkles;
+      case 'pro_plus': return Crown;
+      default: return Zap;
+    }
+  };
+
+  const getPlanColor = (plan: string) => {
+    switch (plan) {
+      case 'professional': return 'text-blue-600 dark:text-blue-400';
+      case 'pro_plus': return 'text-purple-600 dark:text-purple-400';
+      default: return 'text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  const handlePlanUpdated = async () => {
+    // Refresh data after plan update
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const userData = await authAPI.me(token);
+      setUser(userData);
+      
+      const response = await fetch('http://localhost:8000/api/v1/users/me/subscription', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const usageData = await response.json();
+      setUsage(usageData);
+
+      toast({
+        title: 'Plan Updated',
+        description: 'Your subscription has been updated successfully.',
+      });
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300">
           Manage your account settings and preferences
         </p>
       </div>
+
+      {/* Subscription & Usage */}
+      {usage && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Current Plan */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  {(() => {
+                    const PlanIcon = getPlanIcon(usage.plan);
+                    return <PlanIcon className={`h-6 w-6 ${getPlanColor(usage.plan)}`} />;
+                  })()}
+                  Current Plan
+                </CardTitle>
+                <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Change
+                </Button>
+              </div>
+              <CardDescription>Your active subscription plan</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold capitalize text-gray-900 dark:text-white">
+                  {usage.plan === 'pro_plus' ? 'Pro Plus' : usage.plan}
+                </span>
+                {usage.is_beta_tester && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                    Beta Tester
+                  </Badge>
+                )}
+              </div>
+
+              <div className="pt-4 border-t space-y-3">
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Features</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    {usage.features.analytics_dashboard ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
+                    <span className={usage.features.analytics_dashboard ? '' : 'line-through opacity-50'}>Analytics</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {usage.features.journey_templates ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
+                    <span className={usage.features.journey_templates ? '' : 'line-through opacity-50'}>Templates</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {usage.features.advanced_ocr ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
+                    <span className={usage.features.advanced_ocr ? '' : 'line-through opacity-50'}>Advanced OCR</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {usage.features.export_reports ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
+                    <span className={usage.features.export_reports ? '' : 'line-through opacity-50'}>Exports</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Usage Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Usage</CardTitle>
+              <CardDescription>Current billing period</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Receipts</span>
+                  <span className="text-gray-600 dark:text-gray-400">{usage.receipts_used} / {usage.receipts_limit}</span>
+                </div>
+                <Progress value={(usage.receipts_used / usage.receipts_limit) * 100} className="h-2" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Mileage Claims</span>
+                  <span className="text-gray-600 dark:text-gray-400">{usage.mileage_used} / {usage.mileage_limit}</span>
+                </div>
+                <Progress value={(usage.mileage_used / usage.mileage_limit) * 100} className="h-2" />
+              </div>
+
+              {((usage.receipts_used / usage.receipts_limit) * 100 >= 80 || (usage.mileage_used / usage.mileage_limit) * 100 >= 80) && usage.plan === 'free' && (
+                <div className="pt-4 border-t">
+                  <Button onClick={() => setUpgradeDialogOpen(true)} className="w-full" size="sm">
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Upgrade for More
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Profile */}
       <Card>
@@ -273,6 +437,16 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upgrade Plan Dialog */}
+      {usage && (
+        <UpgradePlanDialog
+          open={upgradeDialogOpen}
+          onOpenChange={setUpgradeDialogOpen}
+          currentPlan={usage.plan as 'free' | 'professional' | 'pro_plus'}
+          onPlanUpdated={handlePlanUpdated}
+        />
+      )}
     </div>
   );
 }

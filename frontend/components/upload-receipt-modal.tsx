@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Upload, CheckCircle, XCircle, FileText, Loader2 } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, FileText, Loader2, Crown } from 'lucide-react';
 import { receiptsAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -13,6 +13,8 @@ interface UploadReceiptModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUploadComplete?: () => void;
+  subscriptionUsage?: any;
+  onUpgradeRequired?: () => void;
 }
 
 interface FileUploadStatus {
@@ -26,9 +28,12 @@ export function UploadReceiptModal({
   open,
   onOpenChange,
   onUploadComplete,
+  subscriptionUsage,
+  onUpgradeRequired,
 }: UploadReceiptModalProps) {
   const [files, setFiles] = useState<FileUploadStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasLimitError, setHasLimitError] = useState(false);
 
   const processQueue = async (fileList: File[]) => {
     setIsProcessing(true);
@@ -78,6 +83,11 @@ export function UploadReceiptModal({
       } catch (error: any) {
         console.error(`Upload error for ${fileStatus.file.name}:`, error);
         const errorMessage = error.response?.data?.detail || error.message || 'Failed to upload';
+        
+        // Check if this is a limit error
+        if (errorMessage.includes('limit reached') || errorMessage.includes('Upgrade your plan')) {
+          setHasLimitError(true);
+        }
         
         setFiles(prev => prev.map((f, idx) => 
           idx === i ? { ...f, status: 'error', error: errorMessage } : f
@@ -141,6 +151,7 @@ export function UploadReceiptModal({
       onOpenChange(false);
       setTimeout(() => {
         setFiles([]);
+        setHasLimitError(false);
       }, 300);
     }
   };
@@ -240,9 +251,23 @@ export function UploadReceiptModal({
         )}
 
         {files.length > 0 && !isProcessing && (
-          <Button onClick={handleClose} className="w-full">
-            Done
-          </Button>
+          <div className="flex gap-2">
+            {hasLimitError && onUpgradeRequired ? (
+              <>
+                <Button onClick={handleClose} variant="outline" className="flex-1">
+                  Close
+                </Button>
+                <Button onClick={onUpgradeRequired} className="flex-1">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Upgrade Plan
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleClose} className="w-full">
+                Done
+              </Button>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>

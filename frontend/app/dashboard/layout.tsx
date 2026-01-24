@@ -5,10 +5,12 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car, Crown, Zap, Sparkles } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 import { useTheme } from 'next-themes';
 
 
@@ -21,8 +23,11 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { theme } = useTheme();
   const [userEmail, setUserEmail] = useState<string>('');
+  const [userPlan, setUserPlan] = useState<'free' | 'professional' | 'pro_plus'>('free');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [subscriptionUsage, setSubscriptionUsage] = useState<any>(null);
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -40,8 +45,15 @@ export default function DashboardLayout({
       
       try {
         // Fetch user info from backend
-        const user = await authAPI.me(token);
+        const [user, usageResponse] = await Promise.all([
+          authAPI.me(token),
+          fetch('http://localhost:8000/api/v1/users/me/subscription', {
+            headers: { Authorization: `Bearer ${token}` }
+          }).then(res => res.json())
+        ]);
         setUserEmail(user.email);
+        setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
+        setSubscriptionUsage(usageResponse);
       } catch (error) {
         // Token invalid or expired, redirect to login
         console.error('Failed to fetch user:', error);
@@ -57,6 +69,44 @@ export default function DashboardLayout({
     localStorage.removeItem('token');
     router.push('/login');
   };
+
+  const handlePlanUpdated = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const user = await authAPI.me(token);
+      setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
+    } catch (error) {
+      console.error('Failed to refresh plan:', error);
+    }
+  };
+
+  const getPlanBadge = () => {
+    switch (userPlan) {
+      case 'professional':
+        return {
+          label: 'Professional',
+          icon: Sparkles,
+          className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+        };
+      case 'pro_plus':
+        return {
+          label: 'Pro Plus',
+          icon: Crown,
+          className: 'bg-gradient-to-r from-purple-100 to-yellow-100 text-purple-700 dark:from-purple-900/30 dark:to-yellow-900/30 dark:text-yellow-400 hover:from-purple-200 hover:to-yellow-200 dark:hover:from-purple-900/50 dark:hover:to-yellow-900/50'
+        };
+      default:
+        return {
+          label: 'Free',
+          icon: Zap,
+          className: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+        };
+    }
+  };
+
+  const planBadge = getPlanBadge();
+  const PlanIcon = planBadge.icon;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -124,6 +174,18 @@ export default function DashboardLayout({
 
             {/* Right side - Actions */}
             <div className="flex items-center gap-4">
+              {/* Plan Badge */}
+              {mounted && (
+                <button
+                  onClick={() => setUpgradeDialogOpen(true)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors cursor-pointer ${planBadge.className}`}
+                  title="Click to manage subscription"
+                >
+                  <PlanIcon className="h-4 w-4" />
+                  {planBadge.label}
+                </button>
+              )}
+              
               {/* Theme toggle */}
               <ThemeToggle />
               
@@ -161,10 +223,23 @@ export default function DashboardLayout({
       <UploadReceiptModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
+        subscriptionUsage={subscriptionUsage}
+        onUpgradeRequired={() => {
+          setUploadModalOpen(false);
+          setUpgradeDialogOpen(true);
+        }}
         onUploadComplete={() => {
           // Refresh page to show new receipt
           window.location.reload();
         }}
+      />
+
+      {/* Upgrade Plan Dialog */}
+      <UpgradePlanDialog
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentPlan={userPlan}
+        onPlanUpdated={handlePlanUpdated}
       />
     </div>
   );

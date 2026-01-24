@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Literal
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
@@ -25,6 +26,10 @@ class SubscriptionUsageResponse(BaseModel):
     mileage_limit: int
     is_beta_tester: bool
     features: dict  # All feature flags for the plan
+
+
+class UpdateSubscriptionRequest(BaseModel):
+    plan: Literal["free", "professional", "pro_plus"]
 
 
 @router.get("/me", response_model=UserResponse)
@@ -82,6 +87,39 @@ def get_subscription_usage(
             "support_level": limits["support_level"]
         }
     }
+
+
+@router.put("/me/subscription", response_model=UserResponse)
+def update_subscription_plan(
+    request: UpdateSubscriptionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user's subscription plan.
+    
+    Allows users to upgrade or downgrade between:
+    - free: 10 receipts/month, 5 mileage claims/month
+    - professional: 100 receipts/month, 50 mileage, analytics, templates
+    - pro_plus: 500 receipts/month, 200 mileage, all features
+    
+    Note: This is a simple plan change without payment integration.
+    Users can freely switch between plans for testing/demo purposes.
+    """
+    # Validate plan value (already handled by Literal type, but good for clarity)
+    valid_plans = ["free", "professional", "pro_plus"]
+    if request.plan not in valid_plans:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid plan. Must be one of: {', '.join(valid_plans)}"
+        )
+    
+    # Update the subscription plan
+    current_user.subscription_plan = request.plan
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
 
 
 @router.delete("/me")

@@ -18,6 +18,8 @@ class UserResponse(UserBase):
     id: int
     unique_receipt_email: str
     is_active: bool
+    subscription_plan: Optional[str] = "free"
+    is_beta_tester: Optional[bool] = False
     created_at: datetime
 
     class Config:

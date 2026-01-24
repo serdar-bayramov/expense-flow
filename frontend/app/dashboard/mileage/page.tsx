@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car, MapPin, Calendar, PoundSterling, Plus, ArrowRight, Bike, Bike as Motorbike, Trash2, TrendingUp, Download, Pencil, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mileageAPI, journeyTemplatesAPI, MileageClaim, MileageStats, JourneyTemplate } from '@/lib/api';
+import { mileageAPI, journeyTemplatesAPI, authAPI, MileageClaim, MileageStats, JourneyTemplate } from '@/lib/api';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import AddMileageModal from '@/components/add-mileage-modal';
 import EditMileageModal from '@/components/edit-mileage-modal';
 import ManageTemplatesDialog from '@/components/manage-templates-dialog';
+import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,9 @@ export default function MileagePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [claimToDelete, setClaimToDelete] = useState<MileageClaim | null>(null);
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [subscriptionUsage, setSubscriptionUsage] = useState<any>(null);
   
   // Filters
   const [vehicleFilter, setVehicleFilter] = useState<VehicleFilter>('all');
@@ -65,14 +69,20 @@ export default function MileagePage() {
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
       
-      const [claimsData, statsData, templatesData] = await Promise.all([
+      const [claimsData, statsData, templatesData, userData, usageResponse] = await Promise.all([
         mileageAPI.list(token, params),
         mileageAPI.getStats(token),
-        journeyTemplatesAPI.list(token)
+        journeyTemplatesAPI.list(token),
+        authAPI.me(token),
+        fetch('http://localhost:8000/api/v1/users/me/subscription', {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(res => res.json())
       ]);
       setClaims(claimsData);
       setStats(statsData);
       setTemplates(templatesData);
+      setUser(userData);
+      setSubscriptionUsage(usageResponse);
     } catch (error) {
       console.error('Failed to fetch mileage data:', error);
       toast({
@@ -580,6 +590,19 @@ export default function MileagePage() {
         onSuccess={handleAddClaim}
         templates={templates}
         onManageTemplates={() => setTemplatesDialogOpen(true)}
+        subscriptionUsage={subscriptionUsage}
+        onUpgradeRequired={() => {
+          setAddModalOpen(false);
+          setUpgradeDialogOpen(true);
+        }}
+      />
+
+      {/* Upgrade Plan Dialog */}
+      <UpgradePlanDialog
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentPlan={(user?.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus'}
+        onPlanUpdated={fetchData}
       />
 
       {/* Edit Mileage Modal */}

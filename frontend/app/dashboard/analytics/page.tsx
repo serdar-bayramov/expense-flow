@@ -10,6 +10,7 @@ import { format, subDays, startOfYear, getYear, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
@@ -18,7 +19,8 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userPlan, setUserPlan] = useState<string>('free');
+  const [userPlan, setUserPlan] = useState<'free' | 'professional' | 'pro_plus'>('free');
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [customFromDate, setCustomFromDate] = useState('');
   const [customToDate, setCustomToDate] = useState('');
@@ -100,7 +102,7 @@ export default function AnalyticsPage() {
 
       try {
         const user = await authAPI.me(token);
-        setUserPlan(user.subscription_plan || 'free');
+        setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
       } catch (error) {
         console.error('Failed to fetch user plan:', error);
       }
@@ -108,6 +110,37 @@ export default function AnalyticsPage() {
 
     fetchUserPlan();
   }, []);
+
+  const handlePlanUpdated = async () => {
+    // Refresh user plan after update
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      // Wait a moment for DB to commit
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const user = await authAPI.me(token);
+      setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
+      
+      // Fetch analytics if upgraded to paid plan
+      if (user.subscription_plan !== 'free') {
+        await fetchAnalytics();
+      }
+      
+      toast({
+        title: 'Plan Activated',
+        description: `Your ${user.subscription_plan} plan is now active. ${user.subscription_plan !== 'free' ? 'Analytics unlocked!' : ''}`,
+      });
+    } catch (error) {
+      console.error('Failed to refresh user plan:', error);
+      toast({
+        title: 'Please Refresh',
+        description: 'Your plan was updated. Please refresh the page to see changes.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Export Tax Year Summary as CSV
   const exportTaxYearSummary = () => {
@@ -339,7 +372,11 @@ export default function AnalyticsPage() {
           <AlertDescription className="text-blue-800 dark:text-blue-200">
             Analytics dashboard is not included in the free plan. Upgrade to Professional or Pro Plus to access detailed expense analytics, charts, and reports.
             <div className="mt-3">
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                size="sm" 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => setUpgradeDialogOpen(true)}
+              >
                 Upgrade Plan
               </Button>
             </div>
@@ -571,6 +608,14 @@ export default function AnalyticsPage() {
       )}
         </>
       )}
+
+      {/* Upgrade Plan Dialog */}
+      <UpgradePlanDialog
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentPlan={userPlan}
+        onPlanUpdated={handlePlanUpdated}
+      />
     </div>
   );
 }

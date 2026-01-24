@@ -84,6 +84,19 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  // Update subscription plan
+  updateSubscription: async (token: string, plan: 'free' | 'professional' | 'pro_plus'): Promise<User> => {
+    const response = await api.put('/api/v1/users/me/subscription', 
+      { plan },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
 };
 
 // Receipt types
