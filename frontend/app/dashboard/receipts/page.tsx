@@ -38,6 +38,7 @@ export default function ReceiptsPage() {
   const [deletedReceipts, setDeletedReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [receiptToDelete, setReceiptToDelete] = useState<Receipt | null>(null);
   
@@ -104,6 +105,11 @@ export default function ReceiptsPage() {
     };
 
     fetchReceipts();
+  }, []);
+
+  // Set mounted state after first render
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   // Apply filters whenever receipts, status, date, or search changes
@@ -546,29 +552,31 @@ export default function ReceiptsPage() {
             Manage and organize all your receipts
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Download Receipts
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={downloadCSV}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={downloadPDF}>
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={downloadImages}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Images (ZIP)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {mounted && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download Receipts
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={downloadCSV}>
+                <Download className="mr-2 h-4 w-4" />
+                Download CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadPDF}>
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadImages}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Images (ZIP)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Search and Filters */}

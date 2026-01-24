@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ENVIRONMENT: str = "dev"
+    BETA_MODE: bool = True  # Require invite codes during beta
     GOOGLE_APPLICATION_CREDENTIALS: str
     GCS_BUCKET_NAME: str
     OPENAI_API_KEY: str

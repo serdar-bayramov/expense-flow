@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-from app.api.v1 import auth, users, receipts, mileage, journey_templates
+from app.api.v1 import auth, users, receipts, mileage, journey_templates, invite_codes
 
 security = HTTPBearer()
 
@@ -26,7 +26,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(receipts.router, prefix="/api/v1")
 app.include_router(mileage.router, prefix="/api/v1/mileage", tags=["Mileage"])
 app.include_router(journey_templates.router, prefix="/api/v1/mileage", tags=["Journey Templates"])
-app.include_router(journey_templates.router, prefix="/api/v1/mileage", tags=["Journey Templates"])
+app.include_router(invite_codes.router, prefix="/api/v1/invite-codes", tags=["Invite Codes"])
 
 @app.get("/")
 def read_root():

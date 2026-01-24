@@ -21,6 +21,7 @@ from app.services.audit import (
     log_deletion,
     get_receipt_history
 )
+from app.utils.subscription_limits import check_receipt_limit
 
 
 router = APIRouter(prefix="/receipts", tags=["Receipts"])
@@ -56,6 +57,14 @@ async def upload_receipt_image(
             "status": "completed"
         }
     """
+    
+    # Check subscription limits
+    can_create, current_count, limit = check_receipt_limit(current_user, db)
+    if not can_create:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Monthly receipt limit reached ({current_count}/{limit}). Upgrade your plan for more receipts."
+        )
     
     # Step 1: Upload to Google Cloud Storage
     file_url = upload_file_to_gcs(file, current_user.id)
@@ -109,6 +118,14 @@ def create_receipt(
             "notes": "Office supplies"
         }
     """
+    # Check subscription limits
+    can_create, current_count, limit = check_receipt_limit(current_user, db)
+    if not can_create:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Monthly receipt limit reached ({current_count}/{limit}). Upgrade your plan for more receipts."
+        )
+    
     new_receipt = Receipt(
         user_id=current_user.id,
         image_url=receipt_data.image_url,

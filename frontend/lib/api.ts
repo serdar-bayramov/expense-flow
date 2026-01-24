@@ -17,6 +17,7 @@ export interface User {
   email: string;
   full_name: string | null;
   unique_receipt_email: string;
+  subscription_plan?: 'free' | 'professional' | 'pro_plus';
 }
 
 export interface LoginResponse {
@@ -29,6 +30,7 @@ export interface RegisterData {
   email: string;
   password: string;
   full_name?: string;
+  invite_code?: string;
 }
 
 export interface LoginData {

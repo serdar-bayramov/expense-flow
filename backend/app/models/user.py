@@ -17,6 +17,16 @@ class User(Base):
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     
+    # Subscription & Plan Management
+    subscription_plan = Column(String, default="free", nullable=False)  # free, professional, pro_plus
+    stripe_customer_id = Column(String, unique=True, nullable=True, index=True)
+    stripe_subscription_id = Column(String, unique=True, nullable=True, index=True)
+    subscription_status = Column(String, default="active", nullable=False)  # active, cancelled, expired, past_due
+    
+    # Beta Testing
+    is_beta_tester = Column(Boolean, default=False, nullable=False)
+    beta_expires_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

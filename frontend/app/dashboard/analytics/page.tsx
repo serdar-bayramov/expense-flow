@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim } from '@/lib/api';
+import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim, authAPI } from '@/lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { TrendingUp, PieChartIcon, Calendar, FileText, Car, Download } from 'lucide-react';
+import { TrendingUp, PieChartIcon, Calendar, FileText, Car, Download, Lock } from 'lucide-react';
 import { format, subDays, startOfYear, getYear, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
@@ -17,6 +18,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState<string>('free');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [customFromDate, setCustomFromDate] = useState('');
   const [customToDate, setCustomToDate] = useState('');
@@ -89,6 +91,23 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalytics();
   }, [dateFilter, customFromDate, customToDate]);
+
+  // Fetch user plan on mount
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const user = await authAPI.me(token);
+        setUserPlan(user.subscription_plan || 'free');
+      } catch (error) {
+        console.error('Failed to fetch user plan:', error);
+      }
+    };
+
+    fetchUserPlan();
+  }, []);
 
   // Export Tax Year Summary as CSV
   const exportTaxYearSummary = () => {
@@ -294,20 +313,45 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - Simple for free, full for paid */}
+      {userPlan === 'free' ? (
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
         </div>
-        <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Summary
-        </Button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
+          </div>
+          <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Export Summary
+          </Button>
+        </div>
+      )}
 
-      {/* Date Filter */}
-      <Card>
+      {/* Free Tier Upgrade Prompt */}
+      {userPlan === 'free' && (
+        <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/30">
+          <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertTitle className="text-blue-900 dark:text-blue-100">Analytics Not Available</AlertTitle>
+          <AlertDescription className="text-blue-800 dark:text-blue-200">
+            Analytics dashboard is not included in the free plan. Upgrade to Professional or Pro Plus to access detailed expense analytics, charts, and reports.
+            <div className="mt-3">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                Upgrade Plan
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Only show analytics content for paid plans */}
+      {userPlan !== 'free' && (
+        <>
+          {/* Date Filter */}
+          <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
             <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-300" />
@@ -524,6 +568,8 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </div>
   );

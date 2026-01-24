@@ -10,6 +10,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
+    invite_code: Optional[str] = None  # Optional for now, will be required in beta mode
     # Field(...) means required
 
 

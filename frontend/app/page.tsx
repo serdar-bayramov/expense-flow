@@ -1,65 +1,490 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Receipt, 
+  Car, 
+  TrendingUp, 
+  FileText, 
+  Shield, 
+  Clock, 
+  Check,
+  X,
+  Upload,
+  BarChart3,
+  Download,
+  ChevronRight,
+  Sparkles,
+  ArrowRight,
+  XCircle,
+  CheckCircle2
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+export default function LandingPage() {
+  const features = [
+    {
+      icon: Receipt,
+      title: 'Smart Receipt Scanning',
+      description: 'AI-powered OCR automatically extracts data from your receipts in seconds'
+    },
+    {
+      icon: Car,
+      title: 'Mileage Tracking',
+      description: 'Calculate HMRC-compliant mileage claims with automatic rate calculation'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Real-time Analytics',
+      description: 'Track spending patterns and category breakdowns with visual dashboards'
+    },
+    {
+      icon: FileText,
+      title: 'Tax Year Reports',
+      description: 'Generate professional reports ready for your accountant or HMRC submission'
+    },
+    {
+      icon: Shield,
+      title: 'Built to HMRC Guidelines',
+      description: 'Built to UK tax requirements with proper categorisation and record keeping'
+    },
+    {
+      icon: Clock,
+      title: 'Save Hours Every Month',
+      description: 'Stop manually tracking expenses. Automate the boring stuff and focus on your business'
+    }
+  ];
+
+  const pricingPlans = [
+    {
+      name: 'Free',
+      price: '£0',
+      period: 'forever',
+      description: 'Perfect for trying out xpense',
+      features: [
+        { text: '10 receipts per month', included: true },
+        { text: '5 mileage claims per month', included: true },
+        { text: 'Basic OCR scanning', included: true },
+        { text: 'Analytics dashboard', included: false },
+        { text: 'Export reports', included: false },
+        { text: 'Journey templates', included: false },
+        { text: 'Email support', included: false },
+      ],
+      cta: 'Get Started Free',
+      highlighted: false
+    },
+    {
+      name: 'Professional',
+      price: '£7.99',
+      period: 'per month',
+      description: 'For active freelancers and sole traders',
+      features: [
+        { text: '100 receipts per month', included: true },
+        { text: '50 mileage claims per month', included: true },
+        { text: 'Advanced OCR scanning', included: true },
+        { text: 'Analytics dashboard', included: true },
+        { text: 'CSV export', included: true },
+        { text: 'Journey templates', included: true },
+        { text: 'Email support', included: true },
+      ],
+      cta: 'Start Free Trial',
+      highlighted: true
+    },
+    {
+      name: 'Pro Plus',
+      price: '£12.99',
+      period: 'per month',
+      description: 'For high-volume businesses',
+      features: [
+        { text: '500 receipts per month', included: true },
+        { text: '200 mileage claims per month', included: true },
+        { text: 'Advanced OCR scanning', included: true },
+        { text: 'Analytics dashboard', included: true },
+        { text: 'CSV + PDF + Image export', included: true },
+        { text: 'Journey templates', included: true },
+        { text: 'Priority support', included: true },
+      ],
+      cta: 'Start Free Trial',
+      highlighted: false
+    }
+  ];
+
+  const faqs = [
+    {
+      question: 'Is my data secure?',
+      answer: 'Yes. All data is encrypted in transit and at rest. We use industry-standard security practices and your data is stored in secure UK data centers.'
+    },
+    {
+      question: 'Can I cancel anytime?',
+      answer: 'Absolutely. No contracts, no hidden fees. Cancel with one click and keep access until the end of your billing period.'
+    },
+    {
+      question: 'Does this follow HMRC guidelines?',
+      answer: 'Yes. xpense is built following HMRC guidelines for expense categorisation, record keeping, and mileage rates. Reports are designed to be tax-ready.'
+    },
+    {
+      question: 'Do I need accounting knowledge?',
+      answer: 'Not at all. xpense handles the complex stuff automatically. Just upload receipts and we\'ll organise everything for you.'
+    },
+    {
+      question: 'What happens to my data if I cancel?',
+      answer: 'Your data is retained for 30 days after cancellation, giving you time to export everything. After that, it\'s permanently deleted.'
+    },
+    {
+      question: 'Can I upgrade or downgrade my plan?',
+      answer: 'Yes, anytime. Changes take effect immediately and we\'ll prorate your billing accordingly.'
+    }
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <div className="flex items-center space-x-2">
+            <Image src="/xpense_5_light.svg" alt="xpense" width={140} height={32} className="h-24 w-auto" />
+          </div>
+          <div className="hidden md:flex items-center space-x-6">
+            <a href="#features" className="text-sm font-medium hover:text-primary">Features</a>
+            <a href="#pricing" className="text-sm font-medium hover:text-primary">Pricing</a>
+            <a href="#faq" className="text-sm font-medium hover:text-primary">FAQ</a>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Get Started</Link>
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-20 md:py-32">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-8"
+        >
+          <Badge variant="secondary" className="mb-4">
+            <Sparkles className="w-3 h-3 mr-1" />
+            Built to HMRC Guidelines
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl mx-auto">
+            Expense tracking made simple for UK freelancers
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Stop losing receipts and wasting hours on spreadsheets. xpense automates your expense tracking with AI-powered receipt scanning and intelligent categorisation.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" asChild>
+              <Link href="/signup">
+                Start Free Trial
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <a href="#features">Learn More</a>
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            No credit card required • Free plan available • Cancel anytime
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Problem/Solution Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold mb-6">Tired of messy expense tracking?</h2>
+            <ul className="space-y-4">
+              <li className="flex items-start">
+                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
+                <span>Lost receipts at tax time</span>
+              </li>
+              <li className="flex items-start">
+                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
+                <span>Hours spent on manual data entry</span>
+              </li>
+              <li className="flex items-start">
+                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
+                <span>Confused by HMRC compliance rules</span>
+              </li>
+              <li className="flex items-start">
+                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
+                <span>Mileage logs scattered everywhere</span>
+              </li>
+            </ul>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold mb-6">xpense makes it effortless</h2>
+            <ul className="space-y-4">
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Snap a photo, we extract all the data</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Auto-categorised with HMRC categories</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>One-tap mileage tracking with templates</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Generate tax reports in seconds</span>
+              </li>
+            </ul>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="container mx-auto px-4 py-20 bg-muted/30">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Built specifically for UK freelancers and sole traders
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <Card className="h-full hover:shadow-lg transition-shadow">
+                <div className="p-6 space-y-4">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    {<feature.icon className="h-6 w-6 text-primary" />}
+                  </div>
+                  <h3 className="text-xl font-semibold">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* How It Works */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">How it works</h2>
+          <p className="text-xl text-muted-foreground">Three simple steps to organized expenses</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center space-y-4"
+          >
+            <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto">
+              1
+            </div>
+            <h3 className="text-xl font-semibold">Upload Receipts</h3>
+            <p className="text-muted-foreground">
+              Take a photo or upload from your device. Our AI extracts all the details instantly.
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: true }}
+            className="text-center space-y-4"
+          >
+            <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto">
+              2
+            </div>
+            <h3 className="text-xl font-semibold">Auto-Organise</h3>
+            <p className="text-muted-foreground">
+              xpense categorises expenses and tracks mileage according to HMRC guidelines.
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: true }}
+            className="text-center space-y-4"
+          >
+            <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto">
+              3
+            </div>
+            <h3 className="text-xl font-semibold">Export Reports</h3>
+            <p className="text-muted-foreground">
+              Generate tax-ready reports for your accountant or HMRC submission in one click.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="container mx-auto px-4 py-20 bg-muted/30">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
+          <p className="text-xl text-muted-foreground">Choose the plan that fits your needs</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {pricingPlans.map((plan, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <Card className={`h-full ${plan.highlighted ? 'border-primary shadow-lg scale-105' : ''}`}>
+                <div className="p-6 space-y-6">
+                  {plan.highlighted && (
+                    <Badge className="mb-2">Most Popular</Badge>
+                  )}
+                  <div>
+                    <h3 className="text-2xl font-bold">{plan.name}</h3>
+                    <div className="mt-4 flex items-baseline">
+                      <span className="text-4xl font-bold">{plan.price}</span>
+                      <span className="text-muted-foreground ml-2">/month</span>
+                    </div>
+                  </div>
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 shrink-0 mt-0.5" />
+                        <span className="text-sm">{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button className="w-full" variant={plan.highlighted ? 'default' : 'outline'} asChild>
+                    <Link href="/signup">Get Started</Link>
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="container mx-auto px-4 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently asked questions</h2>
+          <p className="text-xl text-muted-foreground">Everything you need to know</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {faqs.map((faq, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
+              viewport={{ once: true }}
+            >
+              <Card>
+                <div className="p-6 space-y-2">
+                  <h3 className="font-semibold">{faq.question}</h3>
+                  <p className="text-sm text-muted-foreground">{faq.answer}</p>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="container mx-auto px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="bg-linear-to-r from-primary to-primary/80 rounded-2xl p-12 text-center text-primary-foreground"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to simplify your expenses?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join hundreds of UK freelancers saving hours every month
+          </p>
+          <Button size="lg" variant="secondary" asChild>
+            <Link href="/signup">
+              Start Free Trial
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <p className="text-sm mt-4 opacity-75">
+            No credit card required • Cancel anytime
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t bg-muted/30">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Image src="/xpense_5_light.svg" alt="xpense" width={120} height={28} className="h-7 w-auto" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Expense tracking made simple for UK freelancers and sole traders.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#features" className="hover:text-primary">Features</a></li>
+                <li><a href="#pricing" className="hover:text-primary">Pricing</a></li>
+                <li><a href="#faq" className="hover:text-primary">FAQ</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="#" className="hover:text-primary">About</Link></li>
+                <li><Link href="#" className="hover:text-primary">Contact</Link></li>
+                <li><Link href="#" className="hover:text-primary">Privacy</Link></li>
+                <li><Link href="#" className="hover:text-primary">Terms</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="#" className="hover:text-primary">Help Center</Link></li>
+                <li><Link href="#" className="hover:text-primary">Documentation</Link></li>
+                <li><Link href="/login" className="hover:text-primary">Login</Link></li>
+                <li><Link href="/signup" className="hover:text-primary">Sign Up</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} xpense. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

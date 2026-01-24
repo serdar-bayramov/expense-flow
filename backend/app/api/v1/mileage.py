@@ -18,6 +18,7 @@ from app.schemas.mileage import (
     MileageStatsResponse
 )
 from app.services.mileage import calculate_distance_google_maps, get_tax_year_start
+from app.utils.subscription_limits import check_mileage_limit
 
 router = APIRouter()
 
@@ -129,6 +130,14 @@ def create_mileage_claim(
     db: Session = Depends(get_db)
 ):
     """Create a new mileage claim"""
+    # Check subscription limits
+    can_create, current_count, limit = check_mileage_limit(current_user, db)
+    if not can_create:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Monthly mileage claim limit reached ({current_count}/{limit}). Upgrade your plan for more claims."
+        )
+    
     # Calculate distance if not provided
     if claim_data.distance_miles is None:
         distance_info = calculate_distance_google_maps(
