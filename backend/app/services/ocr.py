@@ -1,5 +1,6 @@
 from google.cloud import vision
 from google.cloud import storage
+from google.oauth2 import service_account
 from openai import OpenAI
 import json
 import os
@@ -12,11 +13,18 @@ from sqlalchemy.orm import Session
 from app.core.database import settings
 from app.models.receipt import Receipt, ReceiptStatus
 
-# Google credentials
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
+# Initialize Google Cloud clients
+# Check if GOOGLE_APPLICATION_CREDENTIALS is a file path or JSON string
+if settings.GOOGLE_APPLICATION_CREDENTIALS.startswith('{'):
+    # It's a JSON string (for Railway/production)
+    credentials_dict = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    vision_client = vision.ImageAnnotatorClient(credentials=credentials)
+else:
+    # It's a file path (for local development)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
+    vision_client = vision.ImageAnnotatorClient()
 
-# Initialise clients
-vision_client = vision.ImageAnnotatorClient()
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
