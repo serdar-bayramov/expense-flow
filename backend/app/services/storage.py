@@ -1,16 +1,24 @@
 from google.cloud import storage
+from google.oauth2 import service_account
 from fastapi import UploadFile, HTTPException
 import uuid
 import os
 import io
+import json
 from datetime import timedelta
 from app.core.database import settings
 
 # Initialize Google Cloud Storage client
-# This reads credentials from GOOGLE_APPLICATION_CREDENTIALS env variable
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
-
-storage_client = storage.Client()
+# Check if GOOGLE_APPLICATION_CREDENTIALS is a file path or JSON string
+if settings.GOOGLE_APPLICATION_CREDENTIALS.startswith('{'):
+    # It's a JSON string (for Railway/production)
+    credentials_dict = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    storage_client = storage.Client(credentials=credentials, project=credentials_dict['project_id'])
+else:
+    # It's a file path (for local development)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
+    storage_client = storage.Client()
 
 
 def upload_file_to_gcs(file: UploadFile, user_id: int) -> str:
