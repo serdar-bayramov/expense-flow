@@ -121,6 +121,17 @@ export function UploadReceiptModal({
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
+    // Check subscription limits before uploading
+    if (subscriptionUsage && onUpgradeRequired) {
+      const { receipts_used, receipts_limit } = subscriptionUsage;
+      if (receipts_used >= receipts_limit) {
+        toast.error(`Monthly receipt limit reached (${receipts_used}/${receipts_limit}). Please upgrade your plan.`);
+        setHasLimitError(true);
+        onUpgradeRequired();
+        return;
+      }
+    }
+
     // Validate file sizes
     const validFiles = acceptedFiles.filter(file => {
       if (file.size > 10 * 1024 * 1024) {
@@ -133,7 +144,7 @@ export function UploadReceiptModal({
     if (validFiles.length === 0) return;
 
     await processQueue(validFiles);
-  }, [onUploadComplete, onOpenChange]);
+  }, [subscriptionUsage, onUpgradeRequired, onUploadComplete, onOpenChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

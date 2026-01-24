@@ -366,15 +366,14 @@ export default function AnalyticsPage() {
 
       {/* Free Tier Upgrade Prompt */}
       {userPlan === 'free' && (
-        <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/30">
-          <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertTitle className="text-blue-900 dark:text-blue-100">Analytics Not Available</AlertTitle>
-          <AlertDescription className="text-blue-800 dark:text-blue-200">
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Analytics Not Available</AlertTitle>
+          <AlertDescription>
             Analytics dashboard is not included in the free plan. Upgrade to Professional or Pro Plus to access detailed expense analytics, charts, and reports.
             <div className="mt-3">
               <Button 
-                size="sm" 
-                className="bg-blue-600 hover:bg-blue-700"
+                size="sm"
                 onClick={() => setUpgradeDialogOpen(true)}
               >
                 Upgrade Plan
