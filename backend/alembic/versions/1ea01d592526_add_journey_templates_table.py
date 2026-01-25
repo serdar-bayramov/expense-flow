@@ -20,6 +20,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # Ensure vehicletype enum exists (should be created by mileage_claims migration)
+    op.execute("""
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vehicletype') THEN
+                CREATE TYPE vehicletype AS ENUM ('CAR', 'MOTORCYCLE', 'BICYCLE');
+            END IF;
+        END $$;
+    """)
+    
     # Check if table already exists
     op.execute("""
         DO $$ 
