@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { authAPI } from '@/lib/api';
+import { authAPI, API_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +58,7 @@ export default function SettingsPage() {
           setUser(userData);
           
           // Fetch subscription usage
-          const response = await fetch('http://localhost:8000/api/v1/users/me/subscription', {
+          const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -145,7 +145,7 @@ export default function SettingsPage() {
       const userData = await authAPI.me(token);
       setUser(userData);
       
-      const response = await fetch('http://localhost:8000/api/v1/users/me/subscription', {
+      const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const usageData = await response.json();

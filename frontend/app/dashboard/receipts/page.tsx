@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download, ChevronDown } from 'lucide-react';
-import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory } from '@/lib/api';
+import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory, API_URL } from '@/lib/api';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -478,7 +478,7 @@ export default function ReceiptsPage() {
         receiptsWithImages.map(async (receipt, index) => {
           try {
             const response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/v1/receipts/${receipt.id}/download-image`,
+              `${API_URL}/api/v1/receipts/${receipt.id}/download-image`,
               {
                 headers: {
                   'Authorization': `Bearer ${token}`

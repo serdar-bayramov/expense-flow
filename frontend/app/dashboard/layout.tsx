@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car, Crown, Zap, Sparkles } from 'lucide-react';
-import { authAPI } from '@/lib/api';
+import { authAPI, API_URL } from '@/lib/api';
 import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
@@ -47,7 +47,7 @@ export default function DashboardLayout({
         // Fetch user info from backend
         const [user, usageResponse] = await Promise.all([
           authAPI.me(token),
-          fetch('http://localhost:8000/api/v1/users/me/subscription', {
+          fetch(`${API_URL}/api/v1/users/me/subscription`, {
             headers: { Authorization: `Bearer ${token}` }
           }).then(res => res.json())
         ]);

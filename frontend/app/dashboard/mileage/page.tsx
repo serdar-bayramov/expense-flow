@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car, MapPin, Calendar, PoundSterling, Plus, ArrowRight, Bike, Bike as Motorbike, Trash2, TrendingUp, Download, Pencil, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mileageAPI, journeyTemplatesAPI, authAPI, MileageClaim, MileageStats, JourneyTemplate } from '@/lib/api';
+import { mileageAPI, journeyTemplatesAPI, authAPI, MileageClaim, MileageStats, JourneyTemplate, API_URL } from '@/lib/api';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import AddMileageModal from '@/components/add-mileage-modal';
@@ -74,7 +74,7 @@ export default function MileagePage() {
         mileageAPI.getStats(token),
         journeyTemplatesAPI.list(token),
         authAPI.me(token),
-        fetch('http://localhost:8000/api/v1/users/me/subscription', {
+        fetch(`${API_URL}/api/v1/users/me/subscription`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(res => res.json())
       ]);
