@@ -205,8 +205,15 @@ def verify_blob_exists(gcs_uri: str) -> bool:
         
         print(f"[DEBUG] Checking bucket: {bucket_name}")
         print(f"[DEBUG] Checking blob path: {blob_path}")
+        
+        # Use the vision_client's credentials to create a storage client
         from google.cloud import storage
-        storage_client = storage.Client()
+        if settings.GOOGLE_APPLICATION_CREDENTIALS.startswith('{'):
+            credentials_dict = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+            storage_client = storage.Client(credentials=credentials, project=credentials_dict['project_id'])
+        else:
+            storage_client = storage.Client()
+        
         # Get bucket and blob
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
