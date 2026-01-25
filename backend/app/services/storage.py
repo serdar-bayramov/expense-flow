@@ -145,9 +145,7 @@ def save_image_to_gcs(image_bytes: bytes, original_url: str, user_id: int) -> st
         # Upload image bytes
         blob.upload_from_file(io.BytesIO(image_bytes), content_type='image/png')
         
-        print(f"[DEBUG] Saved preview image to: {preview_blob_name}")
         return blob.public_url
         
     except Exception as e:
-        print(f"[ERROR] Failed to save preview image: {str(e)}")
         raise Exception(f"Failed to save preview image: {str(e)}")

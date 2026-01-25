@@ -95,11 +95,6 @@ export default function ReceiptsPage() {
       try {
         const activeData = await receiptsAPI.getAll(token);
         const deletedData = await receiptsAPI.getDeleted(token);
-        console.log('[DEBUG] Fetched receipts:', {
-          active: activeData.length,
-          deleted: deletedData.length,
-          firstActive: activeData[0],
-        });
         setAllReceipts(activeData);
         setDeletedReceipts(deletedData);
       } catch (error) {
@@ -194,15 +189,6 @@ export default function ReceiptsPage() {
 
     setFilteredReceipts(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-    
-    console.log('[DEBUG] Applied filters:', {
-      statusFilter,
-      dateFilter,
-      categoryFilter,
-      searchQuery,
-      sourceCount: sourceReceipts.length,
-      filteredCount: filtered.length,
-    });
   }, [allReceipts, deletedReceipts, statusFilter, dateFilter, categoryFilter, searchQuery, customFromDate, customToDate]);
 
   // Pagination

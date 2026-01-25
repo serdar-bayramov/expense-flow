@@ -33,7 +33,6 @@ function SignupForm() {
         full_name: fullName || undefined,
         invite_code: inviteCode || undefined
       };
-      console.log('Sending registration data:', registerData);
       
       // Call register API with invite code
       await authAPI.register(registerData);

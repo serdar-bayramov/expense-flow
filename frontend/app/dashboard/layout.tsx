@@ -127,14 +127,14 @@ export default function DashboardLayout({
       <div className="hidden md:flex md:w-64 md:flex-col">
         <div className="flex flex-col grow border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-800 overflow-y-auto">
           {/* Logo */}
-          <div className="flex items-center shrink-0 px-4 pt-4 pb-3">
+          <div className="flex items-center shrink-0 px-4 pt-0 pb-1">
             {mounted && (
               <Image 
-                src={theme === 'dark' ? '/xpense_5_dark.svg' : '/xpense_5_light.svg'}
+                src={theme === 'dark' ? '/dark_logo.svg' : '/light_logo.svg'}
                 alt="Expense Flow" 
                 width={240} 
                 height={80}
-                className="w-44 h-auto"
+                className="w-48 h-auto -mt-2"
                 priority
               />
             )}

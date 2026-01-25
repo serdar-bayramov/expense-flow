@@ -47,8 +47,6 @@ def extract_text_from_receipt(image_url: str, user_id: int = None) -> tuple[str,
     """
     
     try:
-        print(f"[DEBUG] Original image_url: {image_url}")
-        
         # Convert public URL to GCS URI format
         # From: https://storage.googleapis.com/expense-flow/receipts/user_1/file.jpg
         # To:   gs://expense-flow/receipts/user_1/file.jpg
@@ -57,17 +55,12 @@ def extract_text_from_receipt(image_url: str, user_id: int = None) -> tuple[str,
         if "storage.googleapis.com" in image_url:
             # Extract bucket and blob path from URL
             parts = image_url.split("storage.googleapis.com/")[1]
-            print(f"[DEBUG] URL parts before decode: {parts}")
             # Decode URL encoding (%20 → space, etc.)
             parts = unquote(parts)
-            print(f"[DEBUG] URL parts after decode: {parts}")
             gcs_uri = f"gs://{parts}"
         else:
             # If already in gs:// format, use as-is
             gcs_uri = image_url
-        
-        print(f"[DEBUG] Final GCS URI: {gcs_uri}")
-        print(f"[DEBUG] Is PDF: {gcs_uri.lower().endswith('.pdf')}")
         
         # Verify blob exists before calling Vision API
         if not verify_blob_exists(gcs_uri):
@@ -77,56 +70,39 @@ def extract_text_from_receipt(image_url: str, user_id: int = None) -> tuple[str,
         
         # Check if file is PDF - convert to image first
         if gcs_uri.lower().endswith('.pdf'):
-            print(f"[DEBUG] PDF detected - converting to image first")
             image_bytes = convert_pdf_to_image(gcs_uri)
             
             # Save the converted image to GCS for frontend display
             if user_id:
                 from app.services.storage import save_image_to_gcs
                 preview_url = save_image_to_gcs(image_bytes, image_url, user_id)
-                print(f"[DEBUG] Saved preview image: {preview_url}")
             
             # Use image bytes directly with Vision API
             image = vision.Image(content=image_bytes)
-            print(f"[DEBUG] Using text_detection on converted PDF image")
             response = vision_client.text_detection(image=image)
         else:
             # For regular images, use GCS URI directly
             image = vision.Image()
             image.source.image_uri = gcs_uri
-            print(f"[DEBUG] Using text_detection for image")
             response = vision_client.text_detection(image=image)
-        
-        print(f"[DEBUG] Response received")
-        print(f"[DEBUG] Has error: {bool(response.error.message)}")
         
         # Check for errors
         if response.error.message:
-            print(f"[DEBUG] Error message: {response.error.message}")
-            print(f"[DEBUG] Error code: {response.error.code}")
             raise Exception(f"Vision API error: {response.error.message}")
-        
-        print(f"[DEBUG] Has full_text_annotation: {bool(response.full_text_annotation)}")
-        print(f"[DEBUG] Has text_annotations: {bool(response.text_annotations)}")
         
         # Get the detected text
         # For both methods, full_text_annotation contains the complete text
         if response.full_text_annotation:
             full_text = response.full_text_annotation.text
-            print(f"[DEBUG] Extracted {len(full_text)} characters from full_text_annotation")
             return full_text, preview_url
         elif response.text_annotations:
             # Fallback for text_detection method
             full_text = response.text_annotations[0].description
-            print(f"[DEBUG] Extracted {len(full_text)} characters from text_annotations")
             return full_text, preview_url
         else:
-            print(f"[DEBUG] No text found in response")
             return "", preview_url
             
     except Exception as e:
-        print(f"[DEBUG] Exception type: {type(e).__name__}")
-        print(f"[DEBUG] Exception details: {str(e)}")
         print(f"Error extracting text: {str(e)}")
         raise
 
@@ -142,8 +118,6 @@ def convert_pdf_to_image(gcs_uri: str) -> bytes:
         bytes: PNG image bytes of first page
     """
     try:
-        print(f"[DEBUG] Converting PDF to image: {gcs_uri}")
-        
         # Parse gs:// URI
         uri_parts = gcs_uri.replace("gs://", "").split("/", 1)
         bucket_name = uri_parts[0]
@@ -154,8 +128,6 @@ def convert_pdf_to_image(gcs_uri: str) -> bytes:
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
         pdf_bytes = blob.download_as_bytes()
-        
-        print(f"[DEBUG] Downloaded PDF, size: {len(pdf_bytes)} bytes")
         
         # Open PDF with PyMuPDF
         pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -179,7 +151,6 @@ def convert_pdf_to_image(gcs_uri: str) -> bytes:
         
         pdf_document.close()
         
-        print(f"[DEBUG] Converted to PNG, size: {len(img_bytes)} bytes")
         return img_bytes
         
     except Exception as e:
