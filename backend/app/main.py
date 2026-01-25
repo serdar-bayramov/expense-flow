@@ -19,6 +19,8 @@ app.add_middleware(
         "https://expense-flow-1774ebfyl-serdars-projects-1f40f033.vercel.app",
         "https://expense-flow-flax-ten.vercel.app",
         "https://expense-flow-git-main-serdars-projects-1f40f033.vercel.app",
+        "https://expenseflow.co.uk",
+        "https://www.expenseflow.co.uk",
     ],
     allow_credentials=True,
     allow_methods=["*"],
