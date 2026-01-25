@@ -158,6 +158,7 @@ def create_receipt(
 
 
 @router.get("/", response_model=List[ReceiptResponse])
+@router.get("", response_model=List[ReceiptResponse])  # Handle without trailing slash
 def list_receipts(
     skip: int = 0,
     limit: int = 100,
@@ -199,6 +200,11 @@ def list_receipts(
     ).order_by(
         Receipt.created_at.desc()
     ).offset(skip).limit(limit).all()
+
+    print(f"[DEBUG] Fetching receipts for user {current_user.id}")
+    print(f"[DEBUG] Found {len(receipts)} active receipts")
+    for receipt in receipts[:3]:  # Log first 3
+        print(f"[DEBUG] Receipt {receipt.id}: vendor={receipt.vendor}, amount={receipt.total_amount}, status={receipt.status}")
 
     return receipts
 
