@@ -17,7 +17,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://expense-flow-1774ebfyl-serdars-projects-1f40f033.vercel.app",
-        "https://*.vercel.app",  # Allow all Vercel preview deployments
+        "https://expense-flow-flax-ten.vercel.app",
+        "https://expense-flow-git-main-serdars-projects-1f40f033.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
