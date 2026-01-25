@@ -24,8 +24,17 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 export default function LandingPage() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const features = [
     {
       icon: Receipt,
@@ -64,7 +73,7 @@ export default function LandingPage() {
       name: 'Free',
       price: '£0',
       period: 'forever',
-      description: 'Perfect for trying out xpense',
+      description: 'Perfect for trying out ExpenseFlow',
       features: [
         { text: '10 receipts per month', included: true },
         { text: '5 mileage claims per month', included: true },
@@ -79,7 +88,7 @@ export default function LandingPage() {
     },
     {
       name: 'Professional',
-      price: '£7.99',
+      price: '£5.99',
       period: 'per month',
       description: 'For active freelancers and sole traders',
       features: [
@@ -96,7 +105,7 @@ export default function LandingPage() {
     },
     {
       name: 'Pro Plus',
-      price: '£12.99',
+      price: '£9.99',
       period: 'per month',
       description: 'For high-volume businesses',
       features: [
@@ -124,11 +133,11 @@ export default function LandingPage() {
     },
     {
       question: 'Does this follow HMRC guidelines?',
-      answer: 'Yes. xpense is built following HMRC guidelines for expense categorisation, record keeping, and mileage rates. Reports are designed to be tax-ready.'
+      answer: 'Yes. ExpenseFlow is built following HMRC guidelines for expense categorisation, record keeping, and mileage rates. Reports are designed to be tax-ready.'
     },
     {
       question: 'Do I need accounting knowledge?',
-      answer: 'Not at all. xpense handles the complex stuff automatically. Just upload receipts and we\'ll organise everything for you.'
+      answer: 'Not at all. ExpenseFlow handles the complex stuff automatically. Just upload receipts and we\'ll organise everything for you.'
     },
     {
       question: 'What happens to my data if I cancel?',
@@ -146,7 +155,15 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center space-x-2">
-            <Image src="/xpense_5_light.svg" alt="xpense" width={140} height={32} className="h-24 w-auto" />
+            {mounted && (
+              <Image 
+                src={theme === 'dark' ? '/dark_logo.svg' : '/light_logo.svg'} 
+                alt="ExpenseFlow" 
+                width={240} 
+                height={80} 
+                className="h-32 w-auto" 
+              />
+            )}
           </div>
           <div className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-sm font-medium hover:text-primary">Features</a>
@@ -180,7 +197,7 @@ export default function LandingPage() {
             Expense tracking made simple for UK freelancers
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stop losing receipts and wasting hours on spreadsheets. xpense automates your expense tracking with AI-powered receipt scanning and intelligent categorisation.
+            Stop losing receipts and wasting hours on spreadsheets. ExpenseFlow automates your expense tracking with AI-powered receipt scanning and intelligent categorisation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
@@ -234,7 +251,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-6">xpense makes it effortless</h2>
+            <h2 className="text-3xl font-bold mb-6">ExpenseFlow makes it effortless</h2>
             <ul className="space-y-4">
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
@@ -322,7 +339,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-xl font-semibold">Auto-Organise</h3>
             <p className="text-muted-foreground">
-              xpense categorises expenses and tracks mileage according to HMRC guidelines.
+              ExpenseFlow categorises expenses and tracks mileage according to HMRC guidelines.
             </p>
           </motion.div>
           <motion.div
@@ -447,7 +464,15 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Image src="/xpense_5_light.svg" alt="xpense" width={120} height={28} className="h-7 w-auto" />
+                {mounted && (
+                  <Image 
+                    src={theme === 'dark' ? '/dark_logo.svg' : '/light_logo.svg'} 
+                    alt="ExpenseFlow" 
+                    width={200} 
+                    height={65} 
+                    className="h-14 w-auto" 
+                  />
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 Expense tracking made simple for UK freelancers and sole traders.
@@ -481,7 +506,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} xpense. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} ExpenseFlow. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -132,9 +132,9 @@ export default function DashboardLayout({
               <Image 
                 src={theme === 'dark' ? '/dark_logo.svg' : '/light_logo.svg'}
                 alt="Expense Flow" 
-                width={240} 
-                height={80}
-                className="w-48 h-auto -mt-2"
+                width={200} 
+                height={65}
+                className="w-40 h-auto -mt-2"
                 priority
               />
             )}
