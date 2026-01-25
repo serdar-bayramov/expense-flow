@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWSError, jwt 
+from jose import JWSError, jwt
+from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
 from app.core.database import settings
 
@@ -87,6 +88,9 @@ def decode_access_token(token: str) -> Optional[str]:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         return user_id
+    except ExpiredSignatureError:
+        # Token has expired - this is a normal case, not an error
+        return None
     except JWSError:
-        # Token is invalid, expired, or tampered with
+        # Token is invalid or tampered with
         return None
