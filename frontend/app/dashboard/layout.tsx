@@ -49,11 +49,16 @@ export default function DashboardLayout({
           authAPI.me(token),
           fetch(`${API_URL}/api/v1/users/me/subscription`, {
             headers: { Authorization: `Bearer ${token}` }
-          }).then(res => res.json())
+          }).then(res => {
+            if (!res.ok) throw new Error('Subscription fetch failed');
+            return res.json();
+          }).catch(() => null) // Don't fail if subscription endpoint fails
         ]);
         setUserEmail(user.email);
         setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
-        setSubscriptionUsage(usageResponse);
+        if (usageResponse) {
+          setSubscriptionUsage(usageResponse);
+        }
       } catch (error) {
         // Token invalid or expired, redirect to login
         console.error('Failed to fetch user:', error);
