@@ -20,25 +20,38 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Create table using raw SQL to avoid enum recreation issues
+    # Check if table already exists
     op.execute("""
-        CREATE TABLE journey_templates (
-            id UUID PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            name VARCHAR(200) NOT NULL,
-            start_location TEXT NOT NULL,
-            end_location TEXT NOT NULL,
-            vehicle_type vehicletype NOT NULL,
-            business_purpose TEXT NOT NULL,
-            is_round_trip BOOLEAN NOT NULL DEFAULT false,
-            created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-            updated_at TIMESTAMP WITH TIME ZONE NOT NULL
-        )
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'journey_templates'
+            ) THEN
+                CREATE TABLE journey_templates (
+                    id UUID PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    name VARCHAR(200) NOT NULL,
+                    start_location TEXT NOT NULL,
+                    end_location TEXT NOT NULL,
+                    vehicle_type vehicletype NOT NULL,
+                    business_purpose TEXT NOT NULL,
+                    is_round_trip BOOLEAN NOT NULL DEFAULT false,
+                    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                    updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+                );
+            END IF;
+        END $$;
     """)
-    op.create_index('ix_journey_templates_user_id', 'journey_templates', ['user_id'])
+    
+    # Create index if it doesn't exist
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS ix_journey_templates_user_id 
+        ON journey_templates (user_id);
+    """)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index('ix_journey_templates_user_id', 'journey_templates')
-    op.drop_table('journey_templates')
+    op.execute("DROP INDEX IF EXISTS ix_journey_templates_user_id;")
+    op.execute("DROP TABLE IF EXISTS journey_templates;")
