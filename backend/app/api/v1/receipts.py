@@ -88,6 +88,16 @@ async def upload_receipt_image(
         processed_receipt = process_receipt_ocr(new_receipt.id, db)
         return processed_receipt
     except Exception as e:
+        # Log error details
+        import traceback
+        print(f"❌ OCR ERROR for receipt {new_receipt.id}:")
+        print(f"   Error: {str(e)}")
+        print(f"   Traceback: {traceback.format_exc()}")
+        
+        # Update receipt status to failed
+        new_receipt.status = ReceiptStatus.FAILED
+        db.commit()
+        
         # Return receipt even if OCR fails (user can retry later)
         return new_receipt
 
