@@ -6,7 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car, Crown, Zap, Sparkles } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { LayoutDashboard, ReceiptPoundSterling, Settings, Upload, LogOut, BarChart3, Car, Crown, Zap, Sparkles, Menu } from 'lucide-react';
 import { authAPI, API_URL } from '@/lib/api';
 import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -26,6 +27,7 @@ export default function DashboardLayout({
   const [userPlan, setUserPlan] = useState<'free' | 'professional' | 'pro_plus'>('free');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [subscriptionUsage, setSubscriptionUsage] = useState<any>(null);
 
@@ -123,7 +125,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-zinc-800">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <div className="hidden md:flex md:w-64 md:flex-col">
         <div className="flex flex-col grow border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-800 overflow-y-auto">
           {/* Logo */}
@@ -169,13 +171,72 @@ export default function DashboardLayout({
         </div>
       </div>
 
+      {/* Mobile Sidebar */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <div className="flex flex-col h-full bg-white dark:bg-zinc-800">
+            {/* Logo */}
+            <div className="flex items-center shrink-0 px-4 pt-4 pb-3">
+              {mounted && (
+                <Image 
+                  src={theme === 'dark' ? '/dark_logo.svg' : '/light_logo.svg'}
+                  alt="Expense Flow" 
+                  width={200} 
+                  height={65}
+                  className="w-40 h-auto"
+                  priority
+                />
+              )}
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href || 
+                                (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+                const Icon = item.icon;
+                
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      flex items-center px-3 py-2 text-sm font-medium rounded-lg
+                      transition-colors
+                      ${isActive
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                      }
+                    `}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top bar */}
         <header className="w-full">
           <div className="relative z-10 shrink-0 h-16 bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
-            {/* Left side - could add breadcrumbs later */}
-            <div className="flex-1" />
+            {/* Left side - Mobile menu button */}
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
 
             {/* Right side - Actions */}
             <div className="flex items-center gap-4">
@@ -187,7 +248,7 @@ export default function DashboardLayout({
                   title="Click to manage subscription"
                 >
                   <PlanIcon className="h-4 w-4" />
-                  {planBadge.label}
+                  <span className="hidden sm:inline">{planBadge.label}</span>
                 </button>
               )}
               
@@ -197,7 +258,7 @@ export default function DashboardLayout({
               {/* Upload button */}
               <Button className="gap-2" onClick={() => setUploadModalOpen(true)}>
                 <Upload className="h-4 w-4" />
-                Upload Receipt
+                <span className="hidden sm:inline">Upload Receipt</span>
               </Button>
 
               {/* User menu */}
@@ -206,7 +267,7 @@ export default function DashboardLayout({
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  <span>{userEmail}</span>
+                  <span className="hidden sm:inline">{userEmail}</span>
                   <LogOut className="h-4 w-4" />
                 </button>
               </div>

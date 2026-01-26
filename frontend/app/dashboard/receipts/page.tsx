@@ -580,25 +580,25 @@ export default function ReceiptsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-3">
-        <div className="relative w-130">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search vendor or amount..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
         
         {/* Category Filter Dropdown */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300 pointer-events-none z-10" />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer min-w-50"
+            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer w-full sm:w-auto"
           >
             <option value="all">All Categories</option>
             {EXPENSE_CATEGORY_OPTIONS.map((cat) => (
@@ -615,7 +615,7 @@ export default function ReceiptsPage() {
         </div>
         
         {/* Date Filter Dropdown */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <CalendarDays className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-300 pointer-events-none z-10" />
           <select
             value={dateFilter}
@@ -627,7 +627,7 @@ export default function ReceiptsPage() {
                 setCustomToDate('');
               }
             }}
-            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer min-w-45"
+            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white appearance-none cursor-pointer w-full sm:w-auto"
           >
             <option value="all">All Time</option>
             <option value="week">Last 7 Days</option>
@@ -685,7 +685,7 @@ export default function ReceiptsPage() {
       )}
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-2 border-b dark:border-gray-700">
+      <div className="flex gap-2 border-b dark:border-gray-700 overflow-x-auto">
         {statusTabs.map((tab) => {
           const count = getStatusCount(tab.value);
           const isActive = statusFilter === tab.value;
@@ -695,7 +695,7 @@ export default function ReceiptsPage() {
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
               className={`
-                px-4 py-2 text-sm font-medium border-b-2 transition-colors
+                px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0
                 ${isActive
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                   : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'

@@ -349,17 +349,18 @@ export default function AnalyticsPage() {
       {/* Header - Simple for free, full for paid */}
       {userPlan === 'free' ? (
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
         </div>
       ) : (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
           </div>
-          <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2">
+          <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2 w-full sm:w-auto">
             <Download className="h-4 w-4" />
-            Export Summary
+            <span className="hidden sm:inline">Export Summary</span>
+            <span className="sm:hidden">Export</span>
           </Button>
         </div>
       )}
@@ -389,8 +390,8 @@ export default function AnalyticsPage() {
           {/* Date Filter */}
           <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-300" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-300 flex-shrink-0" />
             <select
               value={dateFilter}
               onChange={(e) => {
@@ -401,7 +402,7 @@ export default function AnalyticsPage() {
                   setCustomToDate('');
                 }
               }}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white"
+              className="w-full sm:max-w-md px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent dark:bg-input/30 dark:text-white"
             >
               <option value="all">All Time</option>
               <option value="week">Last 7 Days</option>
@@ -422,7 +423,7 @@ export default function AnalyticsPage() {
 
           {/* Custom Date Range */}
           {dateFilter === 'custom' && (
-            <div className="flex items-center gap-3 mt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-3">
               <div className="flex-1">
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
                 <input
@@ -447,7 +448,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium dark:text-gray-300">Total Expenses</CardTitle>
@@ -511,7 +512,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             {pieChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={400} className="min-h-[300px]">
                 <PieChart>
                   <Pie
                     data={pieChartData}
@@ -519,7 +520,7 @@ export default function AnalyticsPage() {
                     cy="50%"
                     labelLine={false}
                     label={false}
-                    outerRadius={140}
+                    outerRadius={120}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -587,11 +588,11 @@ export default function AnalyticsPage() {
             <CardDescription className="dark:text-gray-400">Receipts, mileage claims, and VAT by month</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} className="min-h-[250px]">
               <BarChart data={barChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip
                   formatter={(value: number) => `£${value.toFixed(2)}`}
                   contentStyle={{ fontSize: '12px' }}

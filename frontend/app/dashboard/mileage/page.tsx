@@ -256,19 +256,19 @@ export default function MileagePage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Mileage Claims</h1>
-          <p className="text-muted-foreground">Track your business mileage and HMRC claims</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Mileage Claims</h1>
+          <p className="text-sm text-muted-foreground">Track your business mileage and HMRC claims</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={exportMileage} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Mileage
+          <Button onClick={exportMileage} variant="outline" className="flex-1 sm:flex-initial">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export Mileage</span>
           </Button>
-          <Button onClick={() => setAddModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Mileage
+          <Button onClick={() => setAddModalOpen(true)} className="flex-1 sm:flex-initial">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Mileage</span>
           </Button>
         </div>
       </div>
@@ -339,11 +339,12 @@ export default function MileagePage() {
                   className="w-full"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={vehicleFilter === 'all' ? 'default' : 'outline'}
                   onClick={() => setVehicleFilter('all')}
                   size="sm"
+                  className="flex-1 sm:flex-initial"
                 >
                   All
                 </Button>
@@ -351,53 +352,58 @@ export default function MileagePage() {
                   variant={vehicleFilter === 'car' ? 'default' : 'outline'}
                   onClick={() => setVehicleFilter('car')}
                   size="sm"
+                  className="flex-1 sm:flex-initial"
                 >
-                  <Car className="mr-2 h-4 w-4" />
-                  Car
+                  <Car className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Car</span>
                 </Button>
                 <Button
                   variant={vehicleFilter === 'motorcycle' ? 'default' : 'outline'}
                   onClick={() => setVehicleFilter('motorcycle')}
                   size="sm"
+                  className="flex-1 sm:flex-initial"
                 >
-                  <Motorbike className="mr-2 h-4 w-4" />
-                  Bike
+                  <Motorbike className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Bike</span>
                 </Button>
                 <Button
                   variant={vehicleFilter === 'bicycle' ? 'default' : 'outline'}
                   onClick={() => setVehicleFilter('bicycle')}
                   size="sm"
+                  className="flex-1 sm:flex-initial"
                 >
-                  <Bike className="mr-2 h-4 w-4" />
-                  Bicycle
+                  <Bike className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Bicycle</span>
                 </Button>
               </div>
             </div>
 
             {/* Date Range Row */}
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="from-date" className="text-sm text-muted-foreground">From Date</Label>
-                <Input
-                  id="from-date"
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="to-date" className="text-sm text-muted-foreground">To Date</Label>
-                <Input
-                  id="to-date"
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="from-date" className="text-sm text-muted-foreground">From Date</Label>
+                  <Input
+                    id="from-date"
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="to-date" className="text-sm text-muted-foreground">To Date</Label>
+                  <Input
+                    id="to-date"
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
-                <Button onClick={fetchData} variant="default" size="sm">
+                <Button onClick={fetchData} variant="default" size="sm" className="flex-1 sm:flex-initial">
                   Apply Filters
                 </Button>
                 {(fromDate || toDate) && (
@@ -410,6 +416,7 @@ export default function MileagePage() {
                     }} 
                     variant="outline" 
                     size="sm"
+                    className="flex-1 sm:flex-initial"
                   >
                     Clear Dates
                   </Button>
@@ -447,19 +454,19 @@ export default function MileagePage() {
                 className="hover:shadow-md transition-shadow"
               >
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2 w-full">
                       {/* Header with date and vehicle */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg ${getVehicleColor(claim.vehicle_type)}`}>
                           <div className="text-white">
                             {getVehicleIcon(claim.vehicle_type)}
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                               <span className="text-sm font-medium">
                                 {format(new Date(claim.date), 'PPP')}
                               </span>
@@ -467,19 +474,19 @@ export default function MileagePage() {
                                 <Badge variant="secondary" className="ml-2">Round Trip</Badge>
                               )}
                             </div>
-                            {/* Route on same line as date */}
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{claim.start_location}</span>
-                              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{claim.end_location}</span>
+                            {/* Route */}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{claim.start_location}</span>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{claim.end_location}</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Stats */}
-                      <div className="flex items-center gap-3 text-sm pl-12">
+                      <div className="flex flex-wrap items-center gap-2 text-sm pl-0 sm:pl-12">
                         <span className="text-muted-foreground">{claim.distance_miles.toFixed(1)} mi</span>
                         <span className="text-muted-foreground">·</span>
                         <span className="text-muted-foreground">{(claim.hmrc_rate * 100).toFixed(0)}p/mi</span>
@@ -488,13 +495,13 @@ export default function MileagePage() {
                       </div>
 
                       {/* Business purpose */}
-                      <div className="pl-12 text-sm text-muted-foreground">
+                      <div className="pl-0 sm:pl-12 text-sm text-muted-foreground">
                         {claim.business_purpose}
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 self-start">
                       <Button
                         variant="ghost"
                         size="icon"

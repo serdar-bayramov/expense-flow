@@ -163,8 +163,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-300">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-300">
           Manage your account settings and preferences
         </p>
       </div>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
           {/* Current Plan */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="flex items-center gap-2">
                   {(() => {
                     const PlanIcon = getPlanIcon(usage.plan);
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                   })()}
                   Current Plan
                 </CardTitle>
-                <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm">
+                <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm" className="w-full sm:w-auto">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Change
                 </Button>
@@ -304,8 +304,8 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg text-sm font-mono">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg text-sm font-mono break-all">
               {user.unique_receipt_email}
             </code>
             <Button
@@ -313,6 +313,7 @@ export default function SettingsPage() {
               onClick={() => {
                 navigator.clipboard.writeText(user.unique_receipt_email);
               }}
+              className="w-full sm:w-auto"
             >
               Copy
             </Button>
