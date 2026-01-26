@@ -61,7 +61,7 @@ export default function LandingClientPage() {
                 alt="ExpenseFlow Logo"
                 width={200}
                 height={65}
-                className="h-16 w-auto"
+                className="h-32 w-auto"
                 priority
               />
             )}
@@ -487,7 +487,7 @@ export default function LandingClientPage() {
                     alt="ExpenseFlow Logo"
                     width={200}
                     height={65}
-                    className="h-14 w-auto"
+                    className="h-32 w-auto"
                   />
                 )}
               </div>
