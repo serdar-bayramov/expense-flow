@@ -52,11 +52,18 @@ async def receive_email(
         recipient_email = to.split('<')[-1].strip('>') if '<' in to else to
         recipient_email = recipient_email.lower().strip()
         
+        logger.info(f"Looking for user with receipt email: {recipient_email}")
+        
         # Find user by unique_receipt_email
         user = db.query(User).filter(User.unique_receipt_email == recipient_email).first()
         
         if not user:
             logger.warning(f"No user found for receipt email: {recipient_email}")
+            # Debug: Check all users in database
+            all_users = db.query(User).all()
+            logger.info(f"Total users in database: {len(all_users)}")
+            for u in all_users:
+                logger.info(f"User {u.id}: email={u.email}, receipt_email={u.unique_receipt_email}")
             return {
                 "status": "error",
                 "message": f"No account found for {recipient_email}"
@@ -81,6 +88,8 @@ async def receive_email(
         receipts_created = []
         form_data = await request.form()
         
+        logger.info(f"Form data keys: {list(form_data.keys())}")
+        
         for i in range(1, attachments + 1):
             attachment_key = f"attachment{i}"
             
@@ -89,10 +98,11 @@ async def receive_email(
                 continue
             
             file = form_data[attachment_key]
+            logger.info(f"Attachment {i} type: {type(file)}, hasattr filename: {hasattr(file, 'filename')}")
             
-            # Check if it's a file
-            if not isinstance(file, UploadFile):
-                logger.warning(f"Attachment {i} is not a file")
+            # SendGrid sends files as UploadFile objects, but check both ways
+            if not hasattr(file, 'filename') or not hasattr(file, 'read'):
+                logger.warning(f"Attachment {i} is not a valid file object")
                 continue
             
             # Get file extension
