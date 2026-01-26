@@ -12,7 +12,7 @@ import io
 from app.core.database import get_db
 from app.models.user import User
 from app.models.receipt import Receipt
-from app.services.storage import upload_image
+from app.services.storage import upload_file_to_gcs
 from app.services.ocr import process_receipt_ocr
 
 router = APIRouter()
@@ -113,12 +113,9 @@ async def receive_email(
                 logger.warning(f"File too large: {filename} ({len(file_content)} bytes)")
                 continue
             
-            # Reset file pointer for upload
-            file_bytes = io.BytesIO(file_content)
-            
             try:
-                # Upload to GCS
-                image_url = await upload_image(file_bytes, user.id, filename)
+                # Upload to GCS (file is already an UploadFile object from SendGrid)
+                image_url = upload_file_to_gcs(file, user.id)
                 
                 # Create receipt record with basic info
                 receipt = Receipt(
