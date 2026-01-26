@@ -1,0 +1,193 @@
+"""
+SendGrid Inbound Email Webhook Endpoint
+Receives emails forwarded to unique receipt addresses and creates receipts automatically
+"""
+from fastapi import APIRouter, Request, HTTPException, Depends, Form, UploadFile, File
+from sqlalchemy.orm import Session
+from typing import List, Optional
+import logging
+from datetime import datetime
+import io
+
+from app.core.database import get_db
+from app.models.user import User
+from app.models.receipt import Receipt
+from app.services.storage import upload_image
+from app.services.ocr import extract_receipt_data
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Supported file extensions for receipt images
+SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+@router.post("/inbound")
+async def receive_email(
+    request: Request,
+    to: str = Form(...),
+    from_email: str = Form(alias="from", default=None),
+    subject: str = Form(default=""),
+    text: Optional[str] = Form(default=None),
+    attachments: Optional[int] = Form(default=0),
+    db: Session = Depends(get_db)
+):
+    """
+    SendGrid Inbound Parse webhook endpoint.
+    Receives email data and creates receipts from attachments.
+    
+    SendGrid sends multipart/form-data with:
+    - to: recipient email (user's unique_receipt_email)
+    - from: sender email address
+    - subject: email subject
+    - text: email body
+    - attachments: number of attachments
+    - attachment1, attachment2, etc: actual files
+    """
+    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}")
+    
+    try:
+        # Extract recipient email (handle both direct and forwarded emails)
+        recipient_email = to.split('<')[-1].strip('>') if '<' in to else to
+        recipient_email = recipient_email.lower().strip()
+        
+        # Find user by unique_receipt_email
+        user = db.query(User).filter(User.unique_receipt_email == recipient_email).first()
+        
+        if not user:
+            logger.warning(f"No user found for receipt email: {recipient_email}")
+            return {
+                "status": "error",
+                "message": f"No account found for {recipient_email}"
+            }
+        
+        if not user.is_active:
+            logger.warning(f"User account inactive: {user.email}")
+            return {
+                "status": "error",
+                "message": "Account is inactive"
+            }
+        
+        # Check if there are any attachments
+        if not attachments or attachments == 0:
+            logger.warning(f"Email from {from_email} has no attachments")
+            return {
+                "status": "error",
+                "message": "No attachments found. Please include receipt images."
+            }
+        
+        # Process each attachment
+        receipts_created = []
+        form_data = await request.form()
+        
+        for i in range(1, attachments + 1):
+            attachment_key = f"attachment{i}"
+            
+            if attachment_key not in form_data:
+                logger.warning(f"Attachment {i} not found in form data")
+                continue
+            
+            file = form_data[attachment_key]
+            
+            # Check if it's a file
+            if not isinstance(file, UploadFile):
+                logger.warning(f"Attachment {i} is not a file")
+                continue
+            
+            # Get file extension
+            filename = file.filename or ""
+            file_ext = filename.lower().split('.')[-1] if '.' in filename else ""
+            file_ext_with_dot = f".{file_ext}"
+            
+            # Check if file type is supported
+            if file_ext_with_dot not in SUPPORTED_EXTENSIONS:
+                logger.warning(f"Unsupported file type: {filename}")
+                continue
+            
+            # Read file content
+            file_content = await file.read()
+            
+            # Check file size
+            if len(file_content) > MAX_FILE_SIZE:
+                logger.warning(f"File too large: {filename} ({len(file_content)} bytes)")
+                continue
+            
+            # Reset file pointer for upload
+            file_bytes = io.BytesIO(file_content)
+            
+            try:
+                # Upload to GCS
+                image_url = await upload_image(file_bytes, user.id, filename)
+                
+                # Extract data using OCR (in background, don't wait)
+                receipt_data = {
+                    "merchant_name": f"Receipt from {from_email or 'email'}",
+                    "amount": 0.0,
+                    "date": datetime.utcnow().date(),
+                    "category": "uncategorized",
+                }
+                
+                try:
+                    ocr_data = await extract_receipt_data(file_content, file_ext_with_dot)
+                    if ocr_data:
+                        receipt_data.update(ocr_data)
+                except Exception as ocr_error:
+                    logger.error(f"OCR failed for {filename}: {ocr_error}")
+                    # Continue with manual data entry
+                
+                # Create receipt record
+                receipt = Receipt(
+                    user_id=user.id,
+                    merchant_name=receipt_data["merchant_name"],
+                    amount=receipt_data["amount"],
+                    date=receipt_data["date"],
+                    category=receipt_data.get("category", "uncategorized"),
+                    image_url=image_url,
+                    description=subject if subject else None,
+                    notes=f"Received via email from {from_email}" if from_email else "Received via email"
+                )
+                
+                db.add(receipt)
+                db.commit()
+                db.refresh(receipt)
+                
+                receipts_created.append({
+                    "id": receipt.id,
+                    "filename": filename,
+                    "merchant": receipt.merchant_name,
+                    "amount": receipt.amount
+                })
+                
+                logger.info(f"Created receipt {receipt.id} for user {user.email} from attachment {filename}")
+                
+            except Exception as e:
+                logger.error(f"Failed to process attachment {filename}: {e}")
+                continue
+        
+        # Return success response
+        if receipts_created:
+            return {
+                "status": "success",
+                "message": f"Created {len(receipts_created)} receipt(s)",
+                "receipts": receipts_created
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "No valid receipt images found in email attachments"
+            }
+    
+    except Exception as e:
+        logger.error(f"Error processing email: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/test")
+async def test_endpoint():
+    """Test endpoint to verify the email API is accessible"""
+    return {
+        "status": "ok",
+        "message": "Email webhook endpoint is active",
+        "version": "1.0"
+    }
