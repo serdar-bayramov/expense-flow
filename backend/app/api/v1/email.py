@@ -130,13 +130,12 @@ async def receive_email(
                 # Create receipt record with basic info
                 receipt = Receipt(
                     user_id=user.id,
-                    merchant_name=f"Receipt from {from_email or 'email'}",
-                    amount=0.0,  # Will be updated by OCR
-                    date=datetime.now(timezone.utc).date(),
-                    category="uncategorized",
+                    vendor=f"Receipt from {from_email or 'email'}",
+                    total_amount=0.0,  # Will be updated by OCR
+                    date=datetime.now(timezone.utc),
+                    category=None,
                     image_url=image_url,
-                    description=subject if subject else None,
-                    notes=f"Received via email from {from_email}" if from_email else "Received via email"
+                    notes=f"Subject: {subject}\nReceived via email from {from_email}" if subject and from_email else (f"Received via email from {from_email}" if from_email else "Received via email")
                 )
                 
                 db.add(receipt)
@@ -154,8 +153,8 @@ async def receive_email(
                 receipts_created.append({
                     "id": receipt.id,
                     "filename": filename,
-                    "merchant": receipt.merchant_name,
-                    "amount": receipt.amount
+                    "vendor": receipt.vendor,
+                    "amount": receipt.total_amount
                 })
                 
                 logger.info(f"Created receipt {receipt.id} for user {user.email} from attachment {filename}")
