@@ -257,7 +257,7 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-137.5 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Mileage Claim</DialogTitle>
         </DialogHeader>
@@ -331,7 +331,7 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
                 setFormData({ ...formData, vehicle_type: value });
                 setDistancePreview(null); // Reset preview when vehicle changes
               }}
-              className="flex gap-4"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="car" id="car" />
@@ -408,7 +408,7 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
           </div>
 
           {/* Round Trip */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-start space-x-2">
             <Checkbox
               id="roundtrip"
               checked={formData.is_round_trip}
@@ -416,8 +416,9 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
                 setFormData({ ...formData, is_round_trip: checked as boolean });
                 setDistancePreview(null);
               }}
+              className="mt-1"
             />
-            <Label htmlFor="roundtrip" className="cursor-pointer">
+            <Label htmlFor="roundtrip" className="cursor-pointer text-sm leading-normal">
               Round trip (doubles the distance)
             </Label>
           </div>
@@ -442,22 +443,22 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
 
           {/* Distance Preview */}
           {distancePreview && (
-            <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-2">
-              <div className="flex justify-between text-sm">
+            <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg space-y-2">
+              <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">Distance:</span>
                 <span className="font-medium">{distancePreview.miles.toFixed(1)} miles</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">Duration:</span>
                 <span className="font-medium">{distancePreview.duration}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">Rate:</span>
                 <span className="font-medium">{(distancePreview.rate * 100).toFixed(0)}p/mile</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-green-200 dark:border-green-800">
-                <span className="font-medium">Estimated Claim:</span>
-                <span className="font-bold text-green-600">£{distancePreview.amount.toFixed(2)}</span>
+                <span className="font-medium text-sm">Estimated Claim:</span>
+                <span className="font-bold text-green-600">{distancePreview.amount.toFixed(2)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 * Final amount may vary based on your annual mileage
@@ -482,22 +483,23 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
           </div>
 
           {/* Save as Template */}
-          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center space-x-2">
+          <div className="space-y-3 p-3 sm:p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-start space-x-2">
               <Checkbox
                 id="save-template"
                 checked={saveAsTemplate}
                 onCheckedChange={(checked) => setSaveAsTemplate(checked as boolean)}
+                className="mt-1"
               />
-              <Label htmlFor="save-template" className="cursor-pointer flex items-center gap-2">
-                <BookmarkPlus className="h-4 w-4" />
+              <Label htmlFor="save-template" className="cursor-pointer flex items-center gap-2 text-sm leading-normal">
+                <BookmarkPlus className="h-4 w-4 flex-shrink-0" />
                 Save as template for future use
               </Label>
             </div>
             
             {saveAsTemplate && (
               <div className="space-y-2 pl-6">
-                <Label htmlFor="template-name">Template Name</Label>
+                <Label htmlFor="template-name" className="text-sm">Template Name</Label>
                 <Input
                   id="template-name"
                   placeholder="e.g., Home to Office"
@@ -510,17 +512,17 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
           </div>
 
           {/* Submit */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="w-full sm:flex-1"
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading || !distancePreview}>
+            <Button type="submit" className="w-full sm:flex-1" disabled={loading || !distancePreview}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
