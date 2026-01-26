@@ -32,7 +32,7 @@ def generate_unique_receipt_email(email: str, db: Session) -> str:
     while True:
         # Generate random 4-character code (lowercase + digits)
         random_code = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-        unique_email = f"{username}-{random_code}@receipts.xpense.com"
+        unique_email = f"{username}-{random_code}@receipts.expenseflow.co.uk"
         
         # Check if this email already exists
         existing = db.query(User).filter(User.unique_receipt_email == unique_email).first()

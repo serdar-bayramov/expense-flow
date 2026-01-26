@@ -303,7 +303,7 @@ export default function SettingsPage() {
             Forward receipts to this email to automatically add them to your account
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg text-sm font-mono break-all">
               {user.unique_receipt_email}
@@ -312,11 +312,40 @@ export default function SettingsPage() {
               variant="outline"
               onClick={() => {
                 navigator.clipboard.writeText(user.unique_receipt_email);
+                toast({
+                  title: 'Copied!',
+                  description: 'Receipt email address copied to clipboard',
+                });
               }}
               className="w-full sm:w-auto"
             >
               Copy
             </Button>
+          </div>
+          
+          {/* How to Use Instructions */}
+          <div className="pt-4 border-t space-y-3">
+            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">How to use:</h4>
+            <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900 dark:text-white">1.</span>
+                <span>Take a photo of your receipt on your phone</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900 dark:text-white">2.</span>
+                <span>Email it to your receipt forwarding address above</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900 dark:text-white">3.</span>
+                <span>The receipt will automatically appear in your dashboard</span>
+              </li>
+            </ol>
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-3">
+              <p className="text-sm text-blue-900 dark:text-blue-200">
+                <strong>💡 Tip:</strong> Add this email to your phone's contacts for quick access. 
+                Supported formats: JPG, PNG, PDF (max 10MB per file)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

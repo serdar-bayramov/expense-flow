@@ -6,14 +6,14 @@ from fastapi import APIRouter, Request, HTTPException, Depends, Form, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import io
 
 from app.core.database import get_db
 from app.models.user import User
 from app.models.receipt import Receipt
 from app.services.storage import upload_image
-from app.services.ocr import extract_receipt_data
+from app.services.ocr import process_receipt_ocr
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -120,29 +120,13 @@ async def receive_email(
                 # Upload to GCS
                 image_url = await upload_image(file_bytes, user.id, filename)
                 
-                # Extract data using OCR (in background, don't wait)
-                receipt_data = {
-                    "merchant_name": f"Receipt from {from_email or 'email'}",
-                    "amount": 0.0,
-                    "date": datetime.utcnow().date(),
-                    "category": "uncategorized",
-                }
-                
-                try:
-                    ocr_data = await extract_receipt_data(file_content, file_ext_with_dot)
-                    if ocr_data:
-                        receipt_data.update(ocr_data)
-                except Exception as ocr_error:
-                    logger.error(f"OCR failed for {filename}: {ocr_error}")
-                    # Continue with manual data entry
-                
-                # Create receipt record
+                # Create receipt record with basic info
                 receipt = Receipt(
                     user_id=user.id,
-                    merchant_name=receipt_data["merchant_name"],
-                    amount=receipt_data["amount"],
-                    date=receipt_data["date"],
-                    category=receipt_data.get("category", "uncategorized"),
+                    merchant_name=f"Receipt from {from_email or 'email'}",
+                    amount=0.0,  # Will be updated by OCR
+                    date=datetime.now(timezone.utc).date(),
+                    category="uncategorized",
                     image_url=image_url,
                     description=subject if subject else None,
                     notes=f"Received via email from {from_email}" if from_email else "Received via email"
@@ -151,6 +135,14 @@ async def receive_email(
                 db.add(receipt)
                 db.commit()
                 db.refresh(receipt)
+                
+                # Process OCR asynchronously (extract text + parse with AI)
+                try:
+                    process_receipt_ocr(receipt.id, db)
+                    logger.info(f"OCR processing completed for receipt {receipt.id}")
+                except Exception as ocr_error:
+                    logger.error(f"OCR processing failed for receipt {receipt.id}: {ocr_error}")
+                    # Receipt is still saved, just without OCR data
                 
                 receipts_created.append({
                     "id": receipt.id,
