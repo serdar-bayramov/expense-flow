@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car } from 'lucide-react';
 import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [mileageStats, setMileageStats] = useState<MileageStats | null>(null);
@@ -209,6 +211,10 @@ export default function DashboardPage() {
               </code>
               <button
                 onClick={() => {
+                  toast({
+                    title: 'Copied!',
+                    description: 'Receipt email address copied to clipboard',
+                  });
                   navigator.clipboard.writeText(user.unique_receipt_email);
                 }}
                 className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"

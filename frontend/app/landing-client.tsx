@@ -334,7 +334,7 @@ export default function LandingClientPage() {
                 <div>
                   <h3 className="text-2xl font-bold">Professional</h3>
                   <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£5.99</span>
+                    <span className="text-4xl font-bold">£7</span>
                     <span className="text-muted-foreground ml-2">/month</span>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function LandingClientPage() {
                 <div>
                   <h3 className="text-2xl font-bold">Pro Plus</h3>
                   <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£9.99</span>
+                    <span className="text-4xl font-bold">£12</span>
                     <span className="text-muted-foreground ml-2">/month</span>
                   </div>
                 </div>
