@@ -81,14 +81,6 @@ async def receive_email(
     email_fingerprint = f"{to}:{from_email}:{subject}:{attachments}:{','.join(sorted(attachment_names))}"
     email_hash = hashlib.md5(email_fingerprint.encode()).hexdigest()
     
-    current_time = datetime.now(timezone.utc).timestamp()
-    
-    # Check if we've already processed this exact email
-    if email_hash in processed_emails:
-        time_since_processed = current_time - processed_emails[email_hash]
-        logger.warning(f"Duplicate email detected and ignored: {email_hash} (processed {time_since_processed:.1f}s ago)")
-        return {
-            "status": "duplicate",
     # Check database if we've already processed this exact email
     existing = db.query(ProcessedEmail).filter(ProcessedEmail.email_hash == email_hash).first()
     if existing:
@@ -117,7 +109,15 @@ async def receive_email(
         deleted = db.query(ProcessedEmail).filter(ProcessedEmail.processed_at < cutoff_date).delete()
         if deleted > 0:
             db.commit()
-            logger.info(f"Cleaned up {deleted} old processed email entries
+            logger.info(f"Cleaned up {deleted} old processed email entries")
+    
+    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}, hash={email_hash}")
+    
+    try:
+        # Extract recipient email (handle both direct and forwarded emails)
+        recipient_email = to.split('<')[-1].strip('>') if '<' in to else to
+        recipient_email = recipient_email.lower().strip()
+        
         logger.info(f"Looking for user with receipt email: {recipient_email}")
         
         # Find user by unique_receipt_email
