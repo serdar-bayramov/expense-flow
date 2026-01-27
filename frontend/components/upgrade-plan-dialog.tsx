@@ -30,29 +30,31 @@ const plans = [
     price: '£0',
     period: 'forever',
     features: [
-      '10 receipts per month',
-      '5 mileage claims per month',
-      'Basic OCR scanning',
+      '50 receipts per month (beta)',
+      '10 mileage claims per month',
+      'Upload or email receipts',
+      'AI-powered OCR scanning',
+      'Analytics dashboard',
+      'CSV export',
+      'Journey templates',
       'Email support',
     ],
-    limitations: [
-      'No analytics dashboard',
-      'No journey templates',
-      'No export options',
-    ],
+    betaNote: '🎉 50 receipts during beta (returns to 10 after)',
   },
   {
     id: 'professional' as const,
     name: 'Professional',
     icon: Zap,
-    description: 'For active freelancers and sole traders',
+    description: 'For active freelancers',
     price: '£10',
     period: 'per month',
     popular: true,
+    comingSoon: true,
     features: [
       '100 receipts per month',
       '50 mileage claims per month',
-      'Advanced OCR scanning',
+      'Upload or email receipts',
+      'AI-powered OCR scanning',
       'Analytics dashboard',
       'CSV export',
       'Journey templates',
@@ -66,10 +68,12 @@ const plans = [
     description: 'For high-volume businesses',
     price: '£17',
     period: 'per month',
+    comingSoon: true,
     features: [
       '500 receipts per month',
       '200 mileage claims per month',
-      'Advanced OCR scanning',
+      'Upload or email receipts',
+      'AI-powered OCR scanning',
       'Analytics dashboard',
       'CSV + PDF + Image export',
       'Journey templates',
@@ -85,6 +89,17 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
 
   const handleSelectPlan = async (planId: 'free' | 'professional' | 'pro_plus') => {
     if (planId === currentPlan) {
+      return;
+    }
+
+    // Prevent selection of coming soon plans
+    const plan = plans.find(p => p.id === planId);
+    if (plan?.comingSoon) {
+      toast({
+        title: 'Coming Soon',
+        description: 'Paid plans will be available after the beta period.',
+        duration: 3000,
+      });
       return;
     }
 
@@ -145,26 +160,36 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
             const Icon = plan.icon;
             const isCurrent = plan.id === currentPlan;
             const isLoading = loading && selectedPlan === plan.id;
+            const isComingSoon = plan.comingSoon;
 
             return (
               <Card
                 key={plan.id}
                 className={`relative flex flex-col min-h-[500px] ${
-                  plan.popular
+                  isComingSoon
+                    ? 'opacity-60'
+                    : plan.popular
                     ? 'border-blue-500 shadow-lg ring-2 ring-blue-500'
                     : isCurrent
                     ? 'border-green-500 ring-2 ring-green-500'
                     : ''
                 }`}
               >
-                {plan.popular && (
+                {isComingSoon && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <span className="bg-gray-500 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-md whitespace-nowrap">
+                      COMING SOON
+                    </span>
+                  </div>
+                )}
+                {!isComingSoon && plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                     <span className="bg-blue-500 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-md whitespace-nowrap">
                       POPULAR
                     </span>
                   </div>
                 )}
-                {isCurrent && (
+                {!isComingSoon && isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                     <span className="bg-green-500 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-md whitespace-nowrap">
                       CURRENT PLAN
@@ -185,23 +210,24 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
                 </CardHeader>
 
                 <CardContent className="flex-1 flex flex-col pt-0">
-                  <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 flex-1">
+                  <ul className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 flex-1">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-2 sm:gap-3">
                         <Check className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 shrink-0 mt-0.5" />
                         <span className="text-sm sm:text-base leading-relaxed">{feature}</span>
                       </li>
                     ))}
-                    {plan.limitations?.map((limitation, index) => (
-                      <li key={`limit-${index}`} className="flex items-start gap-2 sm:gap-3 opacity-50">
-                        <span className="text-sm sm:text-base line-through leading-relaxed">{limitation}</span>
-                      </li>
-                    ))}
                   </ul>
+                  
+                  {plan.betaNote && (
+                    <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 mb-4 sm:mb-6 px-3 py-2 bg-orange-50 dark:bg-orange-950 rounded-md">
+                      ⚠️ {plan.betaNote}
+                    </p>
+                  )}
 
                   <Button
                     onClick={() => handleSelectPlan(plan.id)}
-                    disabled={isCurrent || loading}
+                    disabled={isCurrent || loading || isComingSoon}
                     className="w-full h-10 sm:h-12 text-sm sm:text-base font-semibold mt-auto"
                     variant={isCurrent ? 'outline' : plan.popular ? 'default' : 'outline'}
                   >
@@ -210,6 +236,8 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
                         <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                         Updating...
                       </>
+                    ) : isComingSoon ? (
+                      'Coming Soon'
                     ) : isCurrent ? (
                       'Current Plan'
                     ) : (
@@ -222,10 +250,10 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
           })}
         </div>
 
-        <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <p className="text-xs sm:text-base text-gray-600 dark:text-gray-400 text-center leading-relaxed">
-            💡 This is a demo environment. Plan changes are instant with no payment required.
-            In production, this would integrate with Stripe for secure payments.
+        <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p className="text-xs sm:text-base text-blue-800 dark:text-blue-200 text-center leading-relaxed">
+            🎉 <strong>Beta Launch:</strong> All users get the Free plan with 50 receipts/month during testing. 
+            Paid plans will be available after beta period ends.
           </p>
         </div>
       </DialogContent>
