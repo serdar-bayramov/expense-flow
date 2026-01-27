@@ -28,6 +28,22 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 processed_emails = set()
 
 def process_receipt_ocr_background(receipt_id: int):
+    """Background task to process OCR for a receipt"""
+    from app.core.database import SessionLocal
+    db = SessionLocal()
+    try:
+        process_receipt_ocr(receipt_id, db)
+        logger.info(f"Background OCR processing completed for receipt {receipt_id}")
+    except Exception as e:
+        logger.error(f"Background OCR processing failed for receipt {receipt_id}: {e}")
+    finally:
+        db.close()
+
+
+@router.post("/inbound")
+async def receive_email(
+    request: Request,
+    background_tasks: BackgroundTasks,
     to: str = Form(...),
     from_email: str = Form(alias="from", default=None),
     subject: str = Form(default=""),
@@ -71,25 +87,7 @@ def process_receipt_ocr_background(receipt_id: int):
     if len(processed_emails) > 100:
         processed_emails.clear()
     
-    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}, hash={email_hash
-    subject: str = Form(default=""),
-    text: Optional[str] = Form(default=None),
-    attachments: Optional[int] = Form(default=0),
-    db: Session = Depends(get_db)
-):
-    """
-    SendGrid Inbound Parse webhook endpoint.
-    Receives email data and creates receipts from attachments.
-    
-    SendGrid sends multipart/form-data with:
-    - to: recipient email (user's unique_receipt_email)
-    - from: sender email address
-    - subject: email subject
-    - text: email body
-    - attachments: number of attachments
-    - attachment1, attachment2, etc: actual files
-    """
-    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}")
+    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}, hash={email_hash}")
     
     try:
         # Extract recipient email (handle both direct and forwarded emails)
@@ -130,7 +128,6 @@ def process_receipt_ocr_background(receipt_id: int):
         
         # Process each attachment
         receipts_created = []
-        form_data = await request.form()
         
         logger.info(f"Form data keys: {list(form_data.keys())}")
         
@@ -160,7 +157,33 @@ def process_receipt_ocr_background(receipt_id: int):
                 continue
             
             # Read file content
-            file# Schedule OCR processing in background - don't block response
+            file_content = await file.read()
+            
+            # Check file size
+            if len(file_content) > MAX_FILE_SIZE:
+                logger.warning(f"File too large: {filename} ({len(file_content)} bytes)")
+                continue
+            
+            try:
+                # Upload to GCS (file is already an UploadFile object from SendGrid)
+                image_url = upload_file_to_gcs(file, user.id)
+                
+                # Create receipt record with basic info
+                receipt = Receipt(
+                    user_id=user.id,
+                    vendor=f"Receipt from {from_email or 'email'}",
+                    total_amount=0.0,  # Will be updated by OCR
+                    date=datetime.now(timezone.utc),
+                    category=None,
+                    image_url=image_url,
+                    notes=f"Subject: {subject}\nReceived via email from {from_email}" if subject and from_email else (f"Received via email from {from_email}" if from_email else "Received via email")
+                )
+                
+                db.add(receipt)
+                db.commit()
+                db.refresh(receipt)
+                
+                # Schedule OCR processing in background - don't block response
                 background_tasks.add_task(process_receipt_ocr_background, receipt.id)
                 
                 receipts_created.append({
@@ -177,32 +200,6 @@ def process_receipt_ocr_background(receipt_id: int):
                 continue
         
         # Return success response IMMEDIATELY (OCR happens in background)
-                db.refresh(receipt)
-                
-                receipts_created.append({
-                    "id": receipt.id,
-                    "filename": filename,
-                    "vendor": receipt.vendor,
-                    "amount": receipt.total_amount
-                })
-                
-                logger.info(f"Created receipt {receipt.id} for user {user.email} from attachment {filename}")
-                
-            except Exception as e:
-                logger.error(f"Failed to process attachment {filename}: {e}")
-                continue
-        
-        # Process OCR for all created receipts AFTER responding to SendGrid
-        # This prevents webhook timeouts and duplicate processing
-        for receipt_info in receipts_created:
-            try:
-                process_receipt_ocr(receipt_info["id"], db)
-                logger.info(f"OCR processing completed for receipt {receipt_info['id']}")
-            except Exception as ocr_error:
-                logger.error(f"OCR processing failed for receipt {receipt_info['id']}: {ocr_error}")
-                # Receipt is still saved, just without OCR data
-        
-        # Return success response
         if receipts_created:
             return {
                 "status": "success",
