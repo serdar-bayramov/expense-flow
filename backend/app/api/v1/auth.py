@@ -3,12 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import secrets
 import string
-from datetime import datetime, timedelta, timezone
 
-from app.core.database import get_db, settings
+from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.user import User
-from app.models.invite_code import InviteCode
 from app.schemas.user import UserCreate, UserResponse, Token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -70,27 +68,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             "created_at": "2026-01-10T12:00:00Z"
         }
     """
-    # 1. Check beta mode and invite code
-    invite_code_obj = None
-    if settings.BETA_MODE:
-        if not user_data.invite_code:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invite code required during beta"
-            )
-        
-        # Validate invite code
-        invite_code_obj = db.query(InviteCode).filter(
-            InviteCode.code == user_data.invite_code.strip().upper()
-        ).first()
-        
-        if not invite_code_obj or not invite_code_obj.is_valid():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired invite code"
-            )
-    
-    # 2. Check if user already exists
+    # 1. Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(
@@ -98,43 +76,24 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # 3. Hash password (never store plain text!)
+    # 2. Hash password (never store plain text!)
     hashed_password = hash_password(user_data.password)
     
-    # 4. Generate unique receipt forwarding email
+    # 3. Generate unique receipt forwarding email
     unique_email = generate_unique_receipt_email(user_data.email, db)
     
-    # 5. Determine subscription plan and beta status
-    subscription_plan = "free"
-    is_beta_tester = False
-    beta_expires_at = None
-    
-    if invite_code_obj:
-        subscription_plan = invite_code_obj.grants_plan
-        is_beta_tester = invite_code_obj.is_beta_code
-        if is_beta_tester and invite_code_obj.beta_duration_days:
-            beta_expires_at = datetime.now(timezone.utc) + timedelta(days=invite_code_obj.beta_duration_days)
-    
-    # 6. Create user object
+    # 4. Create user object with free plan (50 receipts during beta)
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
         full_name=user_data.full_name,
         unique_receipt_email=unique_email,
         is_active=True,
-        subscription_plan=subscription_plan,
-        is_beta_tester=is_beta_tester,
-        beta_expires_at=beta_expires_at
+        subscription_plan="free"
     )
     
-    # 7. Save to database
+    # 5. Save to database
     db.add(new_user)
-    
-    # 8. Mark invite code as used
-    if invite_code_obj:
-        invite_code_obj.used_count += 1
-        invite_code_obj.last_used_at = datetime.now(timezone.utc)
-    
     db.commit()
     db.refresh(new_user)  # Get the auto-generated ID and timestamps
     

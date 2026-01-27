@@ -30,7 +30,6 @@ export interface RegisterData {
   email: string;
   password: string;
   full_name?: string;
-  invite_code?: string;
 }
 
 export interface LoginData {

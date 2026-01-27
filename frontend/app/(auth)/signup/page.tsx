@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,16 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { authAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
-// Beta mode - matches backend setting
-const IS_BETA_MODE = process.env.NEXT_PUBLIC_BETA_MODE !== 'false';
-
 function SignupForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [inviteCode, setInviteCode] = useState(searchParams.get('code') || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,20 +25,14 @@ function SignupForm() {
       const registerData = { 
         email, 
         password,
-        full_name: fullName || undefined,
-        invite_code: inviteCode || undefined
+        full_name: fullName || undefined
       };
       
-      // Call register API with invite code
       await authAPI.register(registerData);
       
-      // Show success message
       toast.success('Account created! Please sign in.');
-      
-      // Redirect to login
       router.push('/login');
     } catch (error: any) {
-      // Show error message
       const message = error.response?.data?.detail || 'Signup failed';
       toast.error(message);
     } finally {
@@ -56,37 +45,14 @@ function SignupForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold dark:text-white">
-            {IS_BETA_MODE ? 'Join the Beta' : 'Create an account'}
+            Create an account
           </CardTitle>
           <CardDescription className="dark:text-gray-400">
-            {IS_BETA_MODE 
-              ? 'Enter your beta invite code to get started'
-              : 'Enter your details to get started with xpense'
-            }
+            Start tracking expenses with 50 receipts free during beta
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {IS_BETA_MODE && (
-              <div className="space-y-2">
-                <Label htmlFor="inviteCode" className="dark:text-gray-300">
-                  Beta Invite Code <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="inviteCode"
-                  type="text"
-                  placeholder="BETA-XXXX-XXXX"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  required={IS_BETA_MODE}
-                  disabled={isLoading}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Don't have a code? Contact us to request beta access.
-                </p>
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="fullName" className="dark:text-gray-300">Full Name (optional)</Label>
               <Input

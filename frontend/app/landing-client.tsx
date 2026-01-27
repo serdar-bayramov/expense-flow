@@ -299,7 +299,8 @@ export default function LandingClientPage() {
       <section id="pricing" className="container mx-auto px-4 py-20 bg-muted/30">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-          <p className="text-xl text-muted-foreground">Choose the plan that fits your needs</p>
+          <p className="text-xl text-muted-foreground">Beta launch: 50 receipts free!</p>
+          <p className="text-sm text-muted-foreground mt-2">Paid plans coming soon</p>
         </div>
         <motion.div
           className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
@@ -308,57 +309,25 @@ export default function LandingClientPage() {
           whileInView="animate"
           viewport={{ once: true }}
         >
-          {/* Free Plan */}
+          {/* Free Plan - Beta Active */}
           <motion.div variants={fadeInUp}>
-            <Card className="h-full">
+            <Card className="h-full border-primary shadow-lg scale-105">
               <CardContent className="p-6 space-y-6">
+                <Badge className="mb-2">Beta Launch - Active Now</Badge>
                 <div>
-                  <h3 className="text-2xl font-bold">Free</h3>
+                  <h3 className="text-2xl font-bold">Free Beta</h3>
                   <div className="mt-4 flex items-baseline">
                     <span className="text-4xl font-bold">£0</span>
                     <span className="text-muted-foreground ml-2">/month</span>
                   </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">
+                    🎉 50 receipts during beta (returns to 10 after)
+                  </p>
                 </div>
                 <ul className="space-y-3">
                   {[
-                    '10 receipts per month',
-                    '5 mileage claims per month',
-                    'Upload or email receipts',
-                    'AI-powered OCR scanning',
-                    'Analytics dashboard',
-                    'CSV export',
-                    'Journey templates',
-                    'Email support'
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/signup">Get Started</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Professional Plan */}
-          <motion.div variants={fadeInUp}>
-            <Card className="h-full border-primary shadow-lg scale-105">
-              <CardContent className="p-6 space-y-6">
-                <Badge className="mb-2">Most Popular</Badge>
-                <div>
-                  <h3 className="text-2xl font-bold">Professional</h3>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£10</span>
-                    <span className="text-muted-foreground ml-2">/month</span>
-                  </div>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    '100 receipts per month',
-                    '50 mileage claims per month',
+                    '50 receipts per month (beta)',
+                    '10 mileage claims per month',
                     'Upload or email receipts',
                     'AI-powered OCR scanning',
                     'Analytics dashboard',
@@ -379,10 +348,47 @@ export default function LandingClientPage() {
             </Card>
           </motion.div>
 
-          {/* Pro Plus Plan */}
+          {/* Professional Plan - Coming Soon */}
           <motion.div variants={fadeInUp}>
-            <Card className="h-full">
+            <Card className="h-full opacity-60">
               <CardContent className="p-6 space-y-6">
+                <Badge variant="secondary" className="mb-2">Coming Soon</Badge>
+                <div>
+                  <h3 className="text-2xl font-bold">Professional</h3>
+                  <div className="mt-4 flex items-baseline">
+                    <span className="text-4xl font-bold">£10</span>
+                    <span className="text-muted-foreground ml-2">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3">
+                  {[
+                    '100 receipts per month',
+                    '50 mileage claims per month',
+                    'Upload or email receipts',
+                    'AI-powered OCR scanning',
+                    'Analytics dashboard',
+                    'CSV export',
+                    'Journey templates',
+                    'Email support'
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-start">
+                      <CheckCircle2 className="h-5 w-5 text-gray-400 mr-2 shrink-0 mt-0.5" />
+                      <span className="text-sm text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button variant="outline" className="w-full" disabled>
+                  Coming Soon
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Pro Plus Plan - Coming Soon */}
+          <motion.div variants={fadeInUp}>
+            <Card className="h-full opacity-60">
+              <CardContent className="p-6 space-y-6">
+                <Badge variant="secondary" className="mb-2">Coming Soon</Badge>
                 <div>
                   <h3 className="text-2xl font-bold">Pro Plus</h3>
                   <div className="mt-4 flex items-baseline">
@@ -402,13 +408,13 @@ export default function LandingClientPage() {
                     'Priority support'
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
+                      <CheckCircle2 className="h-5 w-5 text-gray-400 mr-2 shrink-0 mt-0.5" />
+                      <span className="text-sm text-muted-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/signup">Get Started</Link>
+                <Button variant="outline" className="w-full" disabled>
+                  Coming Soon
                 </Button>
               </CardContent>
             </Card>
