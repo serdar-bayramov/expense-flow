@@ -23,9 +23,13 @@ logger = logging.getLogger(__name__)
 SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
-# In-memory cache to prevent duplicate processing (simple solution)
-# In production, use Redis or database table
-processed_emails = set()
+# In-memory cache to prevent duplicate processing
+# Key: email message ID, Value: timestamp when processed
+# In production, use Redis with TTL
+from collections import OrderedDict
+processed_emails = OrderedDict()
+MAX_CACHE_SIZE = 1000
+CACHE_ENTRY_MAX_AGE = 3600  # 1 hour in seconds
 
 def process_receipt_ocr_background(receipt_id: int):
     """Background task to process OCR for a receipt"""
@@ -67,25 +71,55 @@ async def receive_email(
     OCR processing happens in the background.
     """
     
-    # Create a unique identifier for this email to prevent duplicate processing
-    # Use form data to create a hash (SendGrid sends headers with message-id but not always in form)
+    # Get form data first (needed for hash calculation)
     form_data = await request.form()
-    email_fingerprint = f"{to}:{from_email}:{subject}:{attachments}:{datetime.now().strftime('%Y%m%d%H%M')}"
+    
+    # Create idempotency key using email properties (not server time!)
+    # Include all attachments' filenames to make it unique per email
+    attachment_names = []
+    for i in range(1, (attachments or 0) + 1):
+        attachment_key = f"attachment{i}"
+        if attachment_key in form_data:
+            file = form_data[attachment_key]
+            if hasattr(file, 'filename'):
+                attachment_names.append(file.filename or f"file{i}")
+    
+    # Create unique fingerprint based on email content (not time!)
+    email_fingerprint = f"{to}:{from_email}:{subject}:{attachments}:{','.join(sorted(attachment_names))}"
     email_hash = hashlib.md5(email_fingerprint.encode()).hexdigest()
     
-    # Check if we've already processed this email (in the last minute)
+    current_time = datetime.now(timezone.utc).timestamp()
+    
+    # Check if we've already processed this exact email
     if email_hash in processed_emails:
-        logger.warning(f"Duplicate email detected and ignored: {email_hash}")
+        time_since_processed = current_time - processed_emails[email_hash]
+        logger.warning(f"Duplicate email detected and ignored: {email_hash} (processed {time_since_processed:.1f}s ago)")
         return {
             "status": "duplicate",
             "message": "Email already processed"
         }
     
-    # Mark as processed
-    processed_emails.add(email_hash)
-    # Clean up old entries after 100 to prevent memory growth
-    if len(processed_emails) > 100:
-        processed_emails.clear()
+    # Mark as processed with timestamp
+    processed_emails[email_hash] = current_time
+    
+    # Clean up old entries (remove oldest if cache is full)
+    if len(processed_emails) > MAX_CACHE_SIZE:
+        # Remove entries older than 1 hour OR oldest 20% if all recent
+        cutoff_time = current_time - CACHE_ENTRY_MAX_AGE
+        to_remove = []
+        for key, timestamp in list(processed_emails.items()):
+            if timestamp < cutoff_time:
+                to_remove.append(key)
+        
+        # If no old entries, remove oldest 20%
+        if not to_remove:
+            remove_count = MAX_CACHE_SIZE // 5
+            to_remove = list(processed_emails.keys())[:remove_count]
+        
+        for key in to_remove:
+            processed_emails.pop(key, None)
+        
+        logger.info(f"Cleaned up {len(to_remove)} old email hashes from cache")
     
     logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}, hash={email_hash}")
     
@@ -156,13 +190,16 @@ async def receive_email(
                 logger.warning(f"Unsupported file type: {filename}")
                 continue
             
-            # Read file content
+            # Read file content ONCE and reuse
             file_content = await file.read()
             
             # Check file size
             if len(file_content) > MAX_FILE_SIZE:
                 logger.warning(f"File too large: {filename} ({len(file_content)} bytes)")
                 continue
+            
+            # Reset file pointer after reading (in case upload_file_to_gcs needs it)
+            await file.seek(0)
             
             try:
                 # Upload to GCS (file is already an UploadFile object from SendGrid)
