@@ -772,7 +772,7 @@ export default function ReceiptsPage() {
                     {statusFilter === 'deleted' ? (
                       <button
                         onClick={(e) => handleRestore(receipt, e)}
-                        className="absolute top-2 left-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-sm font-medium"
+                        className="absolute top-2 left-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-sm font-medium shadow-lg"
                         title="Restore receipt"
                       >
                         <RotateCcw className="h-4 w-4" />
@@ -781,7 +781,7 @@ export default function ReceiptsPage() {
                     ) : (
                       <button
                         onClick={(e) => handleDeleteClick(receipt, e)}
-                        className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
                         title="Delete receipt"
                       >
                         <Trash2 className="h-4 w-4" />

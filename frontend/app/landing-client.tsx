@@ -168,6 +168,10 @@ export default function LandingClientPage() {
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Automatic duplicate detection - never claim twice</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
                 <span>Track mileage with saved journey templates</span>
               </li>
               <li className="flex items-start">
@@ -214,6 +218,11 @@ export default function LandingClientPage() {
               description: 'Got a receipt while out? Just forward it to your unique email address. No app needed - perfect for capturing expenses on-the-go.'
             },
             {
+              icon: Shield,
+              title: 'Duplicate Detection',
+              description: 'Automatically flags potential duplicate receipts. Never accidentally claim the same expense twice - keeps your records clean and compliant.'
+            },
+            {
               icon: Car,
               title: 'Mileage Tracking with Templates',
               description: 'Save frequent routes (office-client, home-warehouse). Log mileage in 3 taps with HMRC-compliant rate calculation'
@@ -227,11 +236,6 @@ export default function LandingClientPage() {
               icon: FileText,
               title: 'Tax Year Reports',
               description: 'Generate professional reports ready for your accountant or HMRC submission'
-            },
-            {
-              icon: Shield,
-              title: 'HMRC Compliant Record Keeping',
-              description: 'Built following Making Tax Digital guidelines with proper categorisation and secure record keeping'
             }
           ].map((feature, index) => (
             <motion.div key={index} variants={fadeInUp}>
