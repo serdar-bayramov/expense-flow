@@ -5,5 +5,6 @@ from app.models.category import Category
 from app.models.audit_log import AuditLog
 from app.models.mileage_claim import MileageClaim
 from app.models.invite_code import InviteCode
+from app.models.processed_email import ProcessedEmail
 
-__all__ = ["Base", "User", "Receipt", "Category", "AuditLog", "MileageClaim", "InviteCode"]
+__all__ = ["Base", "User", "Receipt", "Category", "AuditLog", "MileageClaim", "InviteCode", "ProcessedEmail"]

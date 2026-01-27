@@ -6,13 +6,14 @@ from fastapi import APIRouter, Request, HTTPException, Depends, Form, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import io
 import hashlib
 
 from app.core.database import get_db
 from app.models.user import User
 from app.models.receipt import Receipt
+from app.models.processed_email import ProcessedEmail
 from app.services.storage import upload_file_to_gcs
 from app.services.ocr import process_receipt_ocr
 
@@ -22,14 +23,6 @@ logger = logging.getLogger(__name__)
 # Supported file extensions for receipt images
 SUPPORTED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-
-# In-memory cache to prevent duplicate processing
-# Key: email message ID, Value: timestamp when processed
-# In production, use Redis with TTL
-from collections import OrderedDict
-processed_emails = OrderedDict()
-MAX_CACHE_SIZE = 1000
-CACHE_ENTRY_MAX_AGE = 3600  # 1 hour in seconds
 
 def process_receipt_ocr_background(receipt_id: int):
     """Background task to process OCR for a receipt"""
@@ -96,38 +89,35 @@ async def receive_email(
         logger.warning(f"Duplicate email detected and ignored: {email_hash} (processed {time_since_processed:.1f}s ago)")
         return {
             "status": "duplicate",
+    # Check database if we've already processed this exact email
+    existing = db.query(ProcessedEmail).filter(ProcessedEmail.email_hash == email_hash).first()
+    if existing:
+        time_since = (datetime.now(timezone.utc) - existing.processed_at).total_seconds()
+        logger.warning(f"Duplicate email detected and ignored: {email_hash} (processed {time_since:.1f}s ago)")
+        return {
+            "status": "duplicate",
             "message": "Email already processed"
         }
     
-    # Mark as processed with timestamp
-    processed_emails[email_hash] = current_time
+    # Store in database that we're processing this email
+    processed_entry = ProcessedEmail(
+        email_hash=email_hash,
+        to_email=to[:255] if to else None,  # Truncate to fit varchar
+        from_email=from_email[:255] if from_email else None,
+        subject=subject[:255] if subject else None,
+        attachment_count=attachments
+    )
+    db.add(processed_entry)
+    db.commit()
     
-    # Clean up old entries (remove oldest if cache is full)
-    if len(processed_emails) > MAX_CACHE_SIZE:
-        # Remove entries older than 1 hour OR oldest 20% if all recent
-        cutoff_time = current_time - CACHE_ENTRY_MAX_AGE
-        to_remove = []
-        for key, timestamp in list(processed_emails.items()):
-            if timestamp < cutoff_time:
-                to_remove.append(key)
-        
-        # If no old entries, remove oldest 20%
-        if not to_remove:
-            remove_count = MAX_CACHE_SIZE // 5
-            to_remove = list(processed_emails.keys())[:remove_count]
-        
-        for key in to_remove:
-            processed_emails.pop(key, None)
-        
-        logger.info(f"Cleaned up {len(to_remove)} old email hashes from cache")
-    
-    logger.info(f"Received email: to={to}, from={from_email}, attachments={attachments}, hash={email_hash}")
-    
-    try:
-        # Extract recipient email (handle both direct and forwarded emails)
-        recipient_email = to.split('<')[-1].strip('>') if '<' in to else to
-        recipient_email = recipient_email.lower().strip()
-        
+    # Cleanup old entries (older than 7 days) - run occasionally
+    # Only cleanup if we have more than 1000 entries to avoid unnecessary queries
+    if db.query(ProcessedEmail).count() > 1000:
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
+        deleted = db.query(ProcessedEmail).filter(ProcessedEmail.processed_at < cutoff_date).delete()
+        if deleted > 0:
+            db.commit()
+            logger.info(f"Cleaned up {deleted} old processed email entries
         logger.info(f"Looking for user with receipt email: {recipient_email}")
         
         # Find user by unique_receipt_email
