@@ -95,15 +95,15 @@ export default function LandingClientPage() {
             Built to HMRC Guidelines
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl mx-auto">
-            Expense tracking made simple for UK freelancers
+            Email or upload receipts. We'll handle the rest.
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stop losing receipts and wasting hours on spreadsheets. ExpenseFlow automates your expense tracking with AI-powered receipt scanning and intelligent categorisation.
+            Just email or upload your receipts. Our AI extracts the data, categorises for HMRC, and organises everything. Track mileage, view analytics, and export tax-ready reports.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
               <Link href="/signup">
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -112,7 +112,7 @@ export default function LandingClientPage() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            No credit card required • Free plan available • Cancel anytime
+            No credit card required • Free plan available • Snap and send from your phone
           </p>
         </motion.div>
       </section>
@@ -131,6 +131,10 @@ export default function LandingClientPage() {
               <li className="flex items-start">
                 <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
                 <span>Lost receipts at tax time</span>
+              </li>
+              <li className="flex items-start">
+                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
+                <span>No time to log expenses during busy day</span>
               </li>
               <li className="flex items-start">
                 <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
@@ -156,7 +160,7 @@ export default function LandingClientPage() {
             <ul className="space-y-4">
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Snap a photo, we extract all the data</span>
+                <span>Upload or email receipts - process multiple at once</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
@@ -164,11 +168,19 @@ export default function LandingClientPage() {
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>One-tap mileage tracking with templates</span>
+                <span>Track mileage with saved journey templates</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Generate tax reports in seconds</span>
+                <span>View spending analytics and insights</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Save 3-5 hours per month on expense tracking</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Generate tax-ready reports in seconds</span>
               </li>
             </ul>
           </motion.div>
@@ -180,7 +192,7 @@ export default function LandingClientPage() {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Built specifically for UK freelancers and sole traders
+            Built specifically for UK freelancers, sole traders & contractors
           </p>
         </div>
         <motion.div
@@ -193,13 +205,18 @@ export default function LandingClientPage() {
           {[
             {
               icon: Receipt,
-              title: 'Smart Receipt Scanning',
-              description: 'AI-powered OCR automatically extracts data from your receipts in seconds'
+              title: 'AI-Powered Receipt Scanning',
+              description: 'Upload or email receipts - our advanced OCR extracts merchant, amount, date, and tax in seconds. Process multiple receipts at once.'
+            },
+            {
+              icon: Upload,
+              title: 'Email Receipt Forwarding',
+              description: 'Got a receipt while out? Just forward it to your unique email address. No app needed - perfect for capturing expenses on-the-go.'
             },
             {
               icon: Car,
-              title: 'Mileage Tracking',
-              description: 'Calculate HMRC-compliant mileage claims with automatic rate calculation'
+              title: 'Mileage Tracking with Templates',
+              description: 'Save frequent routes (office-client, home-warehouse). Log mileage in 3 taps with HMRC-compliant rate calculation'
             },
             {
               icon: TrendingUp,
@@ -213,13 +230,8 @@ export default function LandingClientPage() {
             },
             {
               icon: Shield,
-              title: 'Built to HMRC Guidelines',
-              description: 'Built to UK tax requirements with proper categorisation and record keeping'
-            },
-            {
-              icon: Clock,
-              title: 'Save Hours Every Month',
-              description: 'Stop manually tracking expenses. Automate the boring stuff and focus on your business'
+              title: 'HMRC Compliant Record Keeping',
+              description: 'Built following Making Tax Digital guidelines with proper categorisation and secure record keeping'
             }
           ].map((feature, index) => (
             <motion.div key={index} variants={fadeInUp}>
@@ -247,18 +259,18 @@ export default function LandingClientPage() {
           {[
             {
               number: 1,
-              title: 'Upload Receipts',
-              description: 'Take a photo or upload from your device. Our AI extracts all the details instantly.'
+              title: 'Upload or Email Receipts',
+              description: 'Sign up and start uploading receipts directly, or use your unique email address to forward them on-the-go.'
             },
             {
               number: 2,
-              title: 'Auto-Organise',
-              description: 'ExpenseFlow categorises expenses and tracks mileage according to HMRC guidelines.'
+              title: 'AI Extracts Everything',
+              description: 'Our AI automatically extracts all data and categorises expenses for HMRC. Track mileage with journey templates.'
             },
             {
               number: 3,
-              title: 'Export Reports',
-              description: 'Generate tax-ready reports for your accountant or HMRC submission in one click.'
+              title: 'Export Tax Reports',
+              description: 'View organised expenses in your dashboard. Generate tax-ready reports in one click.'
             }
           ].map((step) => (
             <motion.div
@@ -307,9 +319,10 @@ export default function LandingClientPage() {
                   {[
                     '10 receipts per month',
                     '5 mileage claims per month',
-                    'Basic OCR scanning',
+                    'Upload or email receipts',
+                    'AI-powered OCR scanning',
                     'Analytics dashboard',
-                    'Export reports',
+                    'CSV export',
                     'Journey templates',
                     'Email support'
                   ].map((feature, i) => (
@@ -342,7 +355,8 @@ export default function LandingClientPage() {
                   {[
                     '100 receipts per month',
                     '50 mileage claims per month',
-                    'Advanced OCR scanning',
+                    'Upload or email receipts',
+                    'AI-powered OCR scanning',
                     'Analytics dashboard',
                     'CSV export',
                     'Journey templates',
@@ -376,7 +390,8 @@ export default function LandingClientPage() {
                   {[
                     '500 receipts per month',
                     '200 mileage claims per month',
-                    'Advanced OCR scanning',
+                    'Upload or email receipts',
+                    'AI-powered OCR scanning',
                     'Analytics dashboard',
                     'CSV + PDF + Image export',
                     'Journey templates',
@@ -412,28 +427,28 @@ export default function LandingClientPage() {
         >
           {[
             {
+              question: 'Can I email multiple receipts at once?',
+              answer: 'Yes! Send as many attachments as you want in one email. We\'ll process each receipt separately and add them all to your account. Perfect for end-of-day expense batches.'
+            },
+            {
+              question: 'What file types work with email forwarding?',
+              answer: 'JPG, PNG, and PDF files up to 10MB per attachment. Just forward receipts directly from your phone or email - no app download needed.'
+            },
+            {
               question: 'Is my data secure?',
               answer: 'Yes. All data is encrypted in transit and at rest. We use industry-standard security practices and your data is stored in secure UK data centers.'
             },
             {
-              question: 'Can I cancel anytime?',
-              answer: 'Absolutely. No contracts, no hidden fees. Cancel with one click and keep access until the end of your billing period.'
-            },
-            {
               question: 'Does this follow HMRC guidelines?',
-              answer: 'Yes. ExpenseFlow is built following HMRC guidelines for expense categorisation, record keeping, and mileage rates. Reports are designed to be tax-ready.'
+              answer: 'Yes. ExpenseFlow is built following Making Tax Digital guidelines for expense categorisation, record keeping, and mileage rates. Reports are designed to be tax-ready.'
             },
             {
               question: 'Do I need accounting knowledge?',
-              answer: 'Not at all. ExpenseFlow handles the complex stuff automatically. Just upload receipts and we\'ll organise everything for you.'
+              answer: 'Not at all. ExpenseFlow handles the complex stuff automatically. Just email or upload receipts and we\'ll organise everything for HMRC.'
             },
             {
-              question: 'What happens to my data if I cancel?',
-              answer: 'Your data is retained for 30 days after cancellation, giving you time to export everything. After that, it\'s permanently deleted.'
-            },
-            {
-              question: 'Can I upgrade or downgrade my plan?',
-              answer: 'Yes, anytime. Changes take effect immediately and we\'ll prorate your billing accordingly.'
+              question: 'Can I cancel anytime?',
+              answer: 'Absolutely. No contracts, no hidden fees. Cancel with one click and keep access until the end of your billing period.'
             }
           ].map((faq, index) => (
             <motion.div key={index} variants={fadeInUp}>
@@ -461,7 +476,7 @@ export default function LandingClientPage() {
             Ready to simplify your expenses?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join hundreds of UK freelancers saving hours every month
+            Join UK freelancers, sole traders & contractors saving 3-5 hours every month
           </p>
           <Button size="lg" variant="secondary" asChild>
             <Link href="/signup">
@@ -492,7 +507,7 @@ export default function LandingClientPage() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                Expense tracking made simple for UK freelancers and sole traders.
+                Email-powered expense tracking for UK freelancers, sole traders & contractors.
               </p>
             </div>
             <div>
