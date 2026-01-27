@@ -123,8 +123,17 @@ def convert_pdf_to_image(gcs_uri: str) -> bytes:
         bucket_name = uri_parts[0]
         blob_path = uri_parts[1]
         
-        # Download PDF from GCS
-        storage_client = storage.Client()
+        # Download PDF from GCS using same credentials as Vision API
+        # Check if GOOGLE_APPLICATION_CREDENTIALS is a file path or JSON string
+        if settings.GOOGLE_APPLICATION_CREDENTIALS.startswith('{'):
+            # It's a JSON string (for Railway/production)
+            credentials_dict = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+            credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+            storage_client = storage.Client(credentials=credentials)
+        else:
+            # It's a file path (for local development)
+            storage_client = storage.Client()
+        
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
         pdf_bytes = blob.download_as_bytes()
@@ -177,10 +186,11 @@ def verify_blob_exists(gcs_uri: str) -> bool:
         print(f"[DEBUG] Checking bucket: {bucket_name}")
         print(f"[DEBUG] Checking blob path: {blob_path}")
         
-        # Use the vision_client's credentials to create a storage client
+        # Use the same credentials as Vision API to create a storage client
         from google.cloud import storage
         if settings.GOOGLE_APPLICATION_CREDENTIALS.startswith('{'):
             credentials_dict = json.loads(settings.GOOGLE_APPLICATION_CREDENTIALS)
+            credentials = service_account.Credentials.from_service_account_info(credentials_dict)
             storage_client = storage.Client(credentials=credentials, project=credentials_dict['project_id'])
         else:
             storage_client = storage.Client()
