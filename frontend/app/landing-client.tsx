@@ -521,17 +521,15 @@ export default function LandingClientPage() {
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a className="hover:text-primary" href="#">About</a></li>
-                <li><a className="hover:text-primary" href="#">Contact</a></li>
-                <li><a className="hover:text-primary" href="#">Privacy</a></li>
-                <li><a className="hover:text-primary" href="#">Terms</a></li>
+                <li><a className="hover:text-primary" href="/contact">Contact</a></li>
+                <li><a className="hover:text-primary" href="/privacy">Privacy</a></li>
+                <li><a className="hover:text-primary" href="/terms">Terms</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a className="hover:text-primary" href="#">Help Center</a></li>
-                <li><a className="hover:text-primary" href="#">Documentation</a></li>
+                <li><a className="hover:text-primary" href="/docs">Documentation</a></li>
                 <li><a className="hover:text-primary" href="/login">Login</a></li>
                 <li><a className="hover:text-primary" href="/signup">Sign Up</a></li>
               </ul>
