@@ -46,7 +46,7 @@ const plans = [
     name: 'Professional',
     icon: Zap,
     description: 'For active freelancers and sole traders',
-    price: '£7',
+    price: '£10',
     period: 'per month',
     popular: true,
     features: [
@@ -64,7 +64,7 @@ const plans = [
     name: 'Pro Plus',
     icon: Crown,
     description: 'For high-volume businesses',
-    price: '£12',
+    price: '£17',
     period: 'per month',
     features: [
       '500 receipts per month',
