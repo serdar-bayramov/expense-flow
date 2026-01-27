@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [mileageStats, setMileageStats] = useState<MileageStats | null>(null);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalReceipts: 0,
     totalSpent: 0,
@@ -28,6 +29,7 @@ export default function DashboardPage() {
       if (!token) return;
 
       try {
+        setLoading(true);
         // Fetch user data
         const userData = await authAPI.me(token);
         setUser(userData);
@@ -65,6 +67,8 @@ export default function DashboardPage() {
 
       } catch (error) {
         console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -107,10 +111,19 @@ export default function DashboardPage() {
             <ReceiptPoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">{stats.totalReceipts}</div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {stats.totalReceipts === 0 ? 'Start uploading' : 'All time'}
-            </p>
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold dark:text-white">{stats.totalReceipts}</div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {stats.totalReceipts === 0 ? 'Start uploading' : 'All time'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -122,10 +135,19 @@ export default function DashboardPage() {
             <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">£{stats.totalSpent.toFixed(2)}</div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              All time
-            </p>
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold dark:text-white">£{stats.totalSpent.toFixed(2)}</div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  All time
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -137,10 +159,19 @@ export default function DashboardPage() {
             <PoundSterling className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dark:text-white">£{(stats.totalVAT || 0).toFixed(2)}</div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              All time
-            </p>
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold dark:text-white">£{(stats.totalVAT || 0).toFixed(2)}</div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  All time
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -152,10 +183,19 @@ export default function DashboardPage() {
             <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{stats.pendingReview || 0}</div>
-            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-              {stats.pendingReview === 0 ? 'All caught up!' : 'Need approval'}
-            </p>
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-16 bg-yellow-200 dark:bg-yellow-700 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-yellow-200 dark:bg-yellow-700 rounded animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{stats.pendingReview || 0}</div>
+                <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                  {stats.pendingReview === 0 ? 'All caught up!' : 'Need approval'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
