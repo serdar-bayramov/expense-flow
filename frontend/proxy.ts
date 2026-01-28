@@ -14,9 +14,22 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // Only protect routes that are NOT public
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  try {
+    const path = request.nextUrl.pathname;
+    console.log('🔍 Middleware called for:', path);
+    console.log('🔍 Is public route:', isPublicRoute(request));
+    console.log('🔍 CLERK_PUBLISHABLE_KEY exists:', !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+    
+    // Only protect routes that are NOT public
+    if (!isPublicRoute(request)) {
+      console.log('🔒 Protecting route:', path);
+      await auth.protect();
+    }
+    
+    console.log('✅ Middleware completed for:', path);
+  } catch (error) {
+    console.error('❌ Middleware error:', error);
+    throw error;
   }
 });
 
