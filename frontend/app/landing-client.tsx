@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useAuth } from '@clerk/nextjs';
 import { 
   Receipt, 
   Car, 
@@ -29,8 +30,17 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 export default function LandingClientPage() {
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     setMounted(true);
@@ -73,20 +83,12 @@ export default function LandingClientPage() {
             <a href="#faq" className="text-sm font-medium hover:text-primary">FAQ</a>
           </div>
           <div className="flex items-center space-x-3">
-            <SignedOut>
-              <Button variant="ghost" asChild>
-                <Link href="/login">Log in</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Get Started</Link>
-              </Button>
-            </SignedOut>
-            <SignedIn>
-              <Button variant="ghost" asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+            <Button variant="ghost" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Get Started</Link>
+            </Button>
           </div>
         </div>
       </nav>
