@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | str
 
 export default function ReceiptsPage() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [allReceipts, setAllReceipts] = useState<Receipt[]>([]);
   const [deletedReceipts, setDeletedReceipts] = useState<Receipt[]>([]);
@@ -89,7 +91,7 @@ export default function ReceiptsPage() {
 
   useEffect(() => {
     const fetchReceipts = async () => {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) return;
 
       try {
@@ -232,7 +234,7 @@ export default function ReceiptsPage() {
   const handleDeleteConfirm = async () => {
     if (!receiptToDelete) return;
     
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -262,7 +264,7 @@ export default function ReceiptsPage() {
   const handleRestore = async (receipt: Receipt, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -289,7 +291,7 @@ export default function ReceiptsPage() {
   const handleDismissDuplicate = async (receipt: Receipt, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -466,7 +468,7 @@ export default function ReceiptsPage() {
     });
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) return;
 
       // Dynamic import of JSZip

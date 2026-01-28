@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -31,6 +32,7 @@ interface ManageTemplatesDialogProps {
 }
 
 export default function ManageTemplatesDialog({ open, onOpenChange, templates, onUpdate }: ManageTemplatesDialogProps) {
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -74,7 +76,7 @@ export default function ManageTemplatesDialog({ open, onOpenChange, templates, o
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     if (!formData.name || !formData.start_location || !formData.end_location || !formData.business_purpose) {
@@ -122,7 +124,7 @@ export default function ManageTemplatesDialog({ open, onOpenChange, templates, o
   const confirmDelete = async () => {
     if (!templateToDelete) return;
     
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {

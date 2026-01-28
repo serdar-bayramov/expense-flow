@@ -8,10 +8,12 @@ import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, Alert
 import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@clerk/nextjs';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { getToken } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [mileageStats, setMileageStats] = useState<MileageStats | null>(null);
@@ -25,11 +27,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       try {
         setLoading(true);
+        const token = await getToken();
+        if (!token) return;
+
         // Fetch user data
         const userData = await authAPI.me(token);
         setUser(userData);
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [getToken]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

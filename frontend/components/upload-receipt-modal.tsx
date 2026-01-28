@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useAuth } from '@clerk/nextjs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export function UploadReceiptModal({
   subscriptionUsage,
   onUpgradeRequired,
 }: UploadReceiptModalProps) {
+  const { getToken } = useAuth();
   const [files, setFiles] = useState<FileUploadStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasLimitError, setHasLimitError] = useState(false);
@@ -46,7 +48,7 @@ export function UploadReceiptModal({
     }));
     setFiles(fileStatuses);
 
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) {
       toast.error('Not authenticated');
       setIsProcessing(false);

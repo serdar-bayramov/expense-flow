@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ interface SubscriptionUsage {
 }
 
 export default function SettingsPage() {
+  const { getToken } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
@@ -51,7 +53,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (token) {
         try {
           const userData = await authAPI.me(token);
@@ -88,7 +90,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -138,7 +140,7 @@ export default function SettingsPage() {
 
   const handlePlanUpdated = async () => {
     // Refresh data after plan update
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {

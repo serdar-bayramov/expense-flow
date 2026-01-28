@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
 type VehicleFilter = 'all' | 'car' | 'motorcycle' | 'bicycle';
 
 export default function MileagePage() {
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [claims, setClaims] = useState<MileageClaim[]>([]);
   const [stats, setStats] = useState<MileageStats | null>(null);
@@ -59,7 +61,7 @@ export default function MileagePage() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -127,7 +129,7 @@ export default function MileagePage() {
   const handleDeleteConfirm = async () => {
     if (!claimToDelete) return;
     
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {

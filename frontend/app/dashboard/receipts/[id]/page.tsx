@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { format } from 'date-fns';
 import { ReceiptHistory } from '@/components/receipt-history';
 
 export default function ReceiptDetailPage() {
+  const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
   const receiptId = parseInt(params.id as string);
@@ -38,7 +40,7 @@ export default function ReceiptDetailPage() {
 
   useEffect(() => {
     const fetchReceipt = async () => {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) {
         router.push('/login');
         return;
@@ -70,7 +72,7 @@ export default function ReceiptDetailPage() {
   }, [receiptId, router]);
 
   const handleSave = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -92,7 +94,7 @@ export default function ReceiptDetailPage() {
   };
 
   const handleApprove = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     setApproving(true);
@@ -118,7 +120,7 @@ export default function ReceiptDetailPage() {
   };
 
   const handleSaveChanges = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     setSaving(true);

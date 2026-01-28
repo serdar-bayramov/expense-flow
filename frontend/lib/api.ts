@@ -3,6 +3,14 @@ import axios from 'axios';
 // Base API URL from environment variable
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Helper to get Clerk token (used in client components)
+// Server components should use auth() from @clerk/nextjs/server directly
+export const getClerkToken = async (): Promise<string | null> => {
+  // This will be called from client components
+  // The token is automatically available via Clerk's hooks
+  return null; // Placeholder - actual implementation in components
+};
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -39,28 +47,7 @@ export interface LoginData {
 
 // Auth API calls
 export const authAPI = {
-  // Register new user
-  register: async (data: RegisterData): Promise<User> => {
-    const response = await api.post('/api/v1/auth/register', data);
-    return response.data;
-  },
-
-  // Login user
-  login: async (data: LoginData): Promise<LoginResponse> => {
-    // FastAPI expects form data for OAuth2, not JSON
-    const formData = new URLSearchParams();
-    formData.append('username', data.email);
-    formData.append('password', data.password);
-
-    const response = await api.post('/api/v1/auth/login', formData.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    return response.data;
-  },
-
-  // Get current user (requires token)
+  // Get current user (requires Clerk token)
   me: async (token: string): Promise<User> => {
     const response = await api.get('/api/v1/users/me', {
       headers: {

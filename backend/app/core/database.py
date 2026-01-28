@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     GOOGLE_MAPS_API_KEY: str  # For mileage distance calculations
     SENDGRID_RECOVERY_CODE: str | None = None  # Optional recovery code
+    CLERK_SECRET_KEY: str  # Clerk authentication
     
     class Config:
         env_file = ".env"

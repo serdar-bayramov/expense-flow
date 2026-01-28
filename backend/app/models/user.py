@@ -7,8 +7,9 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
+    clerk_user_id = Column(String, unique=True, index=True, nullable=True)  # Clerk authentication ID
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)  # Nullable for Clerk migration (will be removed later)
     
     # Unique email for forwarding receipts (e.g., sarah-x8k2@receipts.xpense.com)
     unique_receipt_email = Column(String, unique=True, index=True, nullable=False)

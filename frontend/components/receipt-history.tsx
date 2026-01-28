@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -24,13 +25,14 @@ interface ReceiptHistoryProps {
 }
 
 export function ReceiptHistory({ receiptId }: ReceiptHistoryProps) {
+  const { getToken } = useAuth();
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) return;
 
       try {

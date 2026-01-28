@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,6 +82,7 @@ const formatLocation = (location: string): string => {
 };
 
 export default function AddMileageModal({ open, onOpenChange, onSuccess, templates = [], onManageTemplates, subscriptionUsage, onUpgradeRequired }: AddMileageModalProps) {
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [calculatingDistance, setCalculatingDistance] = useState(false);
@@ -146,7 +148,7 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
@@ -208,7 +210,7 @@ export default function AddMileageModal({ open, onOpenChange, onSuccess, templat
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {

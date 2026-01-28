@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import {
   Dialog,
   DialogContent,
@@ -83,6 +84,7 @@ const plans = [
 ];
 
 export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdated }: UpgradePlanDialogProps) {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { toast } = useToast();
@@ -107,7 +109,7 @@ export function UpgradePlanDialog({ open, onOpenChange, currentPlan, onPlanUpdat
     setSelectedPlan(planId);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated');
       }

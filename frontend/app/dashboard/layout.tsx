@@ -13,6 +13,7 @@ import { UploadReceiptModal } from '@/components/upload-receipt-modal';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 import { useTheme } from 'next-themes';
+import { useAuth, useUser, SignOutButton } from '@clerk/nextjs';
 
 
 export default function DashboardLayout({
@@ -23,6 +24,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { user: clerkUser } = useUser();
   const [userEmail, setUserEmail] = useState<string>('');
   const [userPlan, setUserPlan] = useState<'free' | 'professional' | 'pro_plus'>('free');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -36,17 +39,24 @@ export default function DashboardLayout({
     setMounted(true);
   }, []);
 
-  // Check authentication
+  // Check authentication and fetch user data
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!isLoaded) return;
+      
+      if (!isSignedIn) {
         router.push('/login');
         return;
       }
       
       try {
-        // Fetch user info from backend
+        const token = await getToken();
+        if (!token) {
+          router.push('/login');
+          return;
+        }
+        
+        // Fetch user info from our backend
         const [user, usageResponse] = await Promise.all([
           authAPI.me(token),
           fetch(`${API_URL}/api/v1/users/me/subscription`, {
@@ -62,26 +72,19 @@ export default function DashboardLayout({
           setSubscriptionUsage(usageResponse);
         }
       } catch (error) {
-        // Token invalid or expired, redirect to login
         console.error('Failed to fetch user:', error);
-        localStorage.removeItem('token');
         router.push('/login');
       }
     };
 
     fetchUser();
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
-  };
+  }, [isLoaded, isSignedIn, getToken, router]);
 
   const handlePlanUpdated = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
+      const token = await getToken();
+      if (!token) return;
+
       const user = await authAPI.me(token);
       setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
     } catch (error) {
@@ -263,13 +266,14 @@ export default function DashboardLayout({
 
               {/* User menu */}
               <div className="relative">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                >
-                  <span className="hidden sm:inline">{userEmail}</span>
-                  <LogOut className="h-4 w-4" />
-                </button>
+                <SignOutButton>
+                  <button
+                    className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                  >
+                    <span className="hidden sm:inline">{userEmail}</span>
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </SignOutButton>
               </div>
             </div>
           </div>

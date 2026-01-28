@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim, authAPI } from '@/lib/api';
@@ -15,6 +16,7 @@ import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
 export default function AnalyticsPage() {
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
@@ -34,7 +36,7 @@ export default function AnalyticsPage() {
   };
 
   const fetchAnalytics = async () => {
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     setLoading(true);
@@ -97,7 +99,7 @@ export default function AnalyticsPage() {
   // Fetch user plan on mount
   useEffect(() => {
     const fetchUserPlan = async () => {
-      const token = localStorage.getItem('token');
+      const token = await getToken();
       if (!token) return;
 
       try {
@@ -113,7 +115,7 @@ export default function AnalyticsPage() {
 
   const handlePlanUpdated = async () => {
     // Refresh user plan after update
-    const token = localStorage.getItem('token');
+    const token = await getToken();
     if (!token) return;
 
     try {
