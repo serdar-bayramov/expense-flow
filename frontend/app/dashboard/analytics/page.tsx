@@ -125,14 +125,12 @@ export default function AnalyticsPage() {
       const user = await authAPI.me(token);
       setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
       
-      // Fetch analytics if upgraded to paid plan
-      if (user.subscription_plan !== 'free') {
-        await fetchAnalytics();
-      }
+      // Fetch updated analytics data
+      await fetchAnalytics();
       
       toast({
         title: 'Plan Activated',
-        description: `Your ${user.subscription_plan} plan is now active. ${user.subscription_plan !== 'free' ? 'Analytics unlocked!' : ''}`,
+        description: `Your ${user.subscription_plan} plan is now active.`,
       });
     } catch (error) {
       console.error('Failed to refresh user plan:', error);
@@ -348,47 +346,18 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header - Simple for free, full for paid */}
-      {userPlan === 'free' ? (
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
         </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Analyse your expenses by HMRC category</p>
-          </div>
-          <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2 w-full sm:w-auto">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export Summary</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Free Tier Upgrade Prompt */}
-      {userPlan === 'free' && (
-        <Alert>
-          <Lock className="h-4 w-4" />
-          <AlertTitle>Analytics Not Available</AlertTitle>
-          <AlertDescription>
-            Analytics dashboard is not included in the free plan. Upgrade to Professional or Pro Plus to access detailed expense analytics, charts, and reports.
-            <div className="mt-3">
-              <Button 
-                size="sm"
-                onClick={() => setUpgradeDialogOpen(true)}
-              >
-                Upgrade Plan
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Only show analytics content for paid plans */}
-      {userPlan !== 'free' && (
-        <>
+        <Button onClick={exportTaxYearSummary} variant="outline" className="gap-2 w-full sm:w-auto">
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Export Summary</span>
+          <span className="sm:hidden">Export</span>
+        </Button>
+      </div>
           {/* Date Filter */}
           <Card>
         <CardContent className="pt-6">
@@ -607,8 +576,6 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      )}
-        </>
       )}
 
       {/* Upgrade Plan Dialog */}

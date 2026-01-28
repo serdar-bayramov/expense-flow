@@ -264,8 +264,8 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               Forward receipts to this email and they'll automatically appear in your account:
             </p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono dark:text-white">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <code className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono dark:text-white break-all">
                 {user.unique_receipt_email}
               </code>
               <button
@@ -276,7 +276,7 @@ export default function DashboardPage() {
                   });
                   navigator.clipboard.writeText(user.unique_receipt_email);
                 }}
-                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 whitespace-nowrap shrink-0"
               >
                 Copy
               </button>

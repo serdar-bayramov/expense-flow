@@ -13,13 +13,13 @@ from app.models.mileage_claim import MileageClaim
 PLAN_LIMITS = {
     "free": {
         "receipts": 50,  # Beta: 50 receipts (will return to 10 after beta)
-        "mileage_claims": 10,  # Beta: increased from 5
-        "analytics_dashboard": False,
-        "export_reports": False,
-        "journey_templates": False,
+        "mileage_claims": 20,  # Beta: increased to 20 for beta testers
+        "analytics_dashboard": True,  # Now available for free tier
+        "export_reports": True,  # CSV export for free tier
+        "journey_templates": True,  # Templates available for all
         "advanced_ocr": False,
-        "export_formats": [],  # No exports
-        "support_level": "none"
+        "export_formats": ["csv"],  # CSV export enabled
+        "support_level": "email"
     },
     "professional": {
         "receipts": 100,

@@ -32,7 +32,7 @@ const plans = [
     period: 'forever',
     features: [
       '50 receipts per month (beta)',
-      '10 mileage claims per month',
+      '20 mileage claims per month (beta)',
       'Upload or email receipts',
       'AI-powered OCR scanning',
       'Analytics dashboard',
@@ -40,7 +40,7 @@ const plans = [
       'Journey templates',
       'Email support',
     ],
-    betaNote: '🎉 50 receipts during beta (returns to 10 after)',
+    betaNote: '🎉 50 receipts & 20 mileage during beta',
   },
   {
     id: 'professional' as const,

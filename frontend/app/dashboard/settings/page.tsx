@@ -208,20 +208,20 @@ export default function SettingsPage() {
                 <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Features</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex items-center gap-2 text-xs">
-                    {usage.features.analytics_dashboard ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
-                    <span className={usage.features.analytics_dashboard ? '' : 'line-through opacity-50'}>Analytics</span>
+                    <Check className="h-3 w-3 text-green-500" />
+                    <span>Analytics</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    {usage.features.journey_templates ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
-                    <span className={usage.features.journey_templates ? '' : 'line-through opacity-50'}>Templates</span>
+                    <Check className="h-3 w-3 text-green-500" />
+                    <span>Templates</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    {usage.features.advanced_ocr ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
-                    <span className={usage.features.advanced_ocr ? '' : 'line-through opacity-50'}>Advanced OCR</span>
+                    <Check className="h-3 w-3 text-green-500" />
+                    <span>CSV Export</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    {usage.features.export_reports ? <Check className="h-3 w-3 text-green-500" /> : <X className="h-3 w-3 text-gray-400" />}
-                    <span className={usage.features.export_reports ? '' : 'line-through opacity-50'}>Exports</span>
+                    <Check className="h-3 w-3 text-green-500" />
+                    <span>Email Support</span>
                   </div>
                 </div>
               </div>
