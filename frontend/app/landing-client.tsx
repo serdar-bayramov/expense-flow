@@ -106,15 +106,15 @@ export default function LandingClientPage() {
             Built to HMRC Guidelines
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl mx-auto">
-            Smart Expense Tracking for UK Self-Employed & Freelancers
+            Email or upload receipts. We'll handle the rest.
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            The easiest expense management app for UK self-employed and freelancers. Email or upload receipts, AI auto-categorises for HMRC, track mileage, and generate tax-ready reports in seconds.
+            Just email or upload your receipts. Our AI extracts the data, categorises for HMRC, and organises everything. Track mileage, view analytics, and export tax-ready reports.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
               <Link href="/signup">
-                Get Started
+                Start Tracking Expenses Free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
