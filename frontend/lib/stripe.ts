@@ -36,4 +36,18 @@ export const stripeService = {
     const data = await response.json();
     return data.url;
   },
+
+  async cancelSubscription(token: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/v1/stripe/cancel-subscription`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to cancel subscription' }));
+      throw new Error(error.detail || 'Failed to cancel subscription');
+    }
+  },
 };

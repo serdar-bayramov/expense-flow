@@ -148,9 +148,25 @@ export default function SettingsPage() {
     setIsChangingPlan(true);
     try {
       if (planId === 'free') {
-        // Downgrade to free - open billing portal to cancel
-        const portalUrl = await stripeService.createBillingPortalSession(token);
-        window.location.href = portalUrl;
+        // Cancel subscription immediately via backend
+        await stripeService.cancelSubscription(token);
+        
+        // Refresh user data
+        const userData = await authAPI.me(token);
+        setUser(userData);
+        
+        const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const usageData = await response.json();
+        setUsage(usageData);
+        
+        toast({
+          title: 'Subscription Cancelled',
+          description: 'Your subscription has been cancelled and you are now on the Free plan.',
+        });
+        
+        setIsChangingPlan(false);
       } else {
         // Upgrade/change to paid plan - create checkout session
         const checkoutUrl = await stripeService.createCheckoutSession(token, planId);

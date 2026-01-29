@@ -91,23 +91,11 @@ export function PlanSelector({ currentPlan, onSelectPlan, isLoading = false }: P
                       </span>
                     </div>
 
-                    {/* Key Features */}
+                    {/* Key Features - only show highlighted features */}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      {plan.limits.receipts && (
-                        <span className="flex items-center gap-1">
-                          <Check className="h-3 w-3 text-green-500" />
-                          {plan.limits.receipts} receipts/month
-                        </span>
-                      )}
-                      {plan.limits.mileage && (
-                        <span className="flex items-center gap-1">
-                          <Check className="h-3 w-3 text-green-500" />
-                          {plan.limits.mileage} mileage/month
-                        </span>
-                      )}
                       {plan.features
                         .filter(f => f.highlight)
-                        .slice(0, 2)
+                        .slice(0, 4)
                         .map((feature, i) => (
                           <span key={i} className="flex items-center gap-1">
                             <Check className="h-3 w-3 text-green-500" />
@@ -135,19 +123,20 @@ export function PlanSelector({ currentPlan, onSelectPlan, isLoading = false }: P
           <div className="text-sm">
             <p className="font-medium">
               {selectedPlan === 'free' 
-                ? 'Downgrade to Free plan?' 
-                : `Upgrade to ${PLANS.find(p => p.id === selectedPlan)?.name}?`}
+                ? 'Cancel subscription and downgrade to Free?' 
+                : `Change to ${PLANS.find(p => p.id === selectedPlan)?.name}?`}
             </p>
             <p className="text-muted-foreground text-xs">
               {selectedPlan === 'free'
-                ? 'You will lose access to premium features'
-                : 'You will be charged immediately and have instant access'}
+                ? 'Your subscription will be cancelled immediately'
+                : 'Changes take effect immediately'}
             </p>
           </div>
           <Button
             onClick={handleConfirm}
             disabled={isLoading}
             size="lg"
+            variant={selectedPlan === 'free' ? 'outline' : 'default'}
           >
             {isLoading ? (
               <>
@@ -155,7 +144,7 @@ export function PlanSelector({ currentPlan, onSelectPlan, isLoading = false }: P
                 Processing...
               </>
             ) : (
-              'Confirm Change'
+              selectedPlan === 'free' ? 'Cancel Subscription' : 'Confirm Change'
             )}
           </Button>
         </div>

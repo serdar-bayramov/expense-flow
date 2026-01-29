@@ -81,6 +81,34 @@ async def create_billing_portal_session(
     return BillingPortalResponse(url=session.url)
 
 
+@router.post("/cancel-subscription")
+async def cancel_subscription(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel user's active subscription immediately
+    """
+    if not current_user.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No active subscription to cancel")
+    
+    try:
+        # Cancel subscription immediately
+        await StripeService.cancel_subscription(current_user.stripe_subscription_id)
+        
+        # Update user in database
+        current_user.subscription_plan = 'free'
+        current_user.subscription_status = 'canceled'
+        current_user.stripe_subscription_id = None
+        current_user.subscription_cancel_at_period_end = False
+        db.commit()
+        
+        return {"message": "Subscription cancelled successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to cancel subscription: {str(e)}")
+
+
 @router.get("/subscription-status")
 async def get_subscription_status(
     current_user: User = Depends(get_current_user)
