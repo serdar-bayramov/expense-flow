@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   description: "AI-powered receipt scanning and mileage tracking built for HMRC compliance. Automate your expense management with ExpenseFlow.",
   keywords: ["expense tracking", "receipt scanner", "mileage tracker", "HMRC", "UK freelancers", "sole traders", "tax", "accounting"],
   authors: [{ name: "ExpenseFlow" }],
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
   openGraph: {
     title: "ExpenseFlow - Smart Expense Tracking",
     description: "AI-powered receipt scanning and mileage tracking for UK freelancers",
