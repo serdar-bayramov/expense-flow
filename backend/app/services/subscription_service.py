@@ -182,7 +182,12 @@ class SubscriptionService:
         # Find user
         user = db.query(User).filter(User.stripe_subscription_id == subscription_id).first()
         if not user:
-            logger.error(f"User not found for subscription: {subscription_id}")
+            logger.warning(f"User not found for subscription: {subscription_id} (may have been manually cancelled)")
+            return
+        
+        # Check if already cancelled (to avoid race condition with manual cancellation)
+        if user.subscription_plan == 'free' and user.subscription_status == 'canceled':
+            logger.info(f"Subscription {subscription_id} already cancelled for user {user.id} (likely manual cancellation)")
             return
         
         # Downgrade to free
@@ -190,6 +195,7 @@ class SubscriptionService:
         user.subscription_status = 'canceled'
         user.stripe_subscription_id = None
         user.subscription_cancel_at_period_end = False
+        user.subscription_current_period_end = None
         
         db.commit()
-        logger.info(f"Subscription deleted for user {user.id}")
+        logger.info(f"Subscription deleted for user {user.id} via webhook")

@@ -93,19 +93,25 @@ async def cancel_subscription(
         raise HTTPException(status_code=400, detail="No active subscription to cancel")
     
     try:
-        # Cancel subscription immediately
-        await StripeService.cancel_subscription(current_user.stripe_subscription_id)
+        subscription_id = current_user.stripe_subscription_id
         
-        # Update user in database
+        # Cancel subscription immediately in Stripe
+        await StripeService.cancel_subscription(subscription_id)
+        
+        # Update user in database immediately
         current_user.subscription_plan = 'free'
         current_user.subscription_status = 'canceled'
         current_user.stripe_subscription_id = None
         current_user.subscription_cancel_at_period_end = False
+        current_user.subscription_current_period_end = None
         db.commit()
         
-        return {"message": "Subscription cancelled successfully"}
+        print(f"✅ Subscription {subscription_id} cancelled for user {current_user.id} ({current_user.email})")
+        
+        return {"message": "Subscription cancelled successfully", "plan": "free"}
     except Exception as e:
         db.rollback()
+        print(f"❌ Failed to cancel subscription for user {current_user.id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to cancel subscription: {str(e)}")
 
 

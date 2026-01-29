@@ -151,22 +151,13 @@ export default function SettingsPage() {
         // Cancel subscription immediately via backend
         await stripeService.cancelSubscription(token);
         
-        // Refresh user data
-        const userData = await authAPI.me(token);
-        setUser(userData);
-        
-        const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const usageData = await response.json();
-        setUsage(usageData);
-        
         toast({
           title: 'Subscription Cancelled',
-          description: 'Your subscription has been cancelled and you are now on the Free plan.',
+          description: 'Your subscription has been cancelled. Refreshing...',
         });
         
-        setIsChangingPlan(false);
+        // Reload page to refresh all components (layout, settings, etc.)
+        window.location.reload();
       } else {
         // Upgrade/change to paid plan - create checkout session
         const checkoutUrl = await stripeService.createCheckoutSession(token, planId);
