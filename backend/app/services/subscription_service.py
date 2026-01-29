@@ -95,32 +95,37 @@ class SubscriptionService:
     @staticmethod
     async def handle_subscription_created(subscription: dict, db: Session):
         """Handle subscription.created webhook"""
-        customer_id = subscription['customer']
-        subscription_id = subscription['id']
-        
-        # Find user by stripe_customer_id
-        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
-        if not user:
-            logger.error(f"User not found for customer: {customer_id}")
-            return
-        
-        # Determine plan from subscription
-        price_id = subscription['items']['data'][0]['price']['id']
-        plan_map = {
-            settings.STRIPE_PROFESSIONAL_PRICE_ID: 'professional',
-            settings.STRIPE_PRO_PLUS_PRICE_ID: 'pro_plus',
-        }
-        plan = plan_map.get(price_id, 'free')
-        
-        # Update user
-        user.stripe_subscription_id = subscription_id
-        user.subscription_plan = plan
-        user.subscription_status = subscription['status']
-        user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
-        user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
-        
-        db.commit()
-        logger.info(f"Subscription created for user {user.id}: {plan}")
+        try:
+            customer_id = subscription['customer']
+            subscription_id = subscription['id']
+            
+            # Find user by stripe_customer_id
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+            if not user:
+                logger.error(f"User not found for customer: {customer_id}")
+                return
+            
+            # Determine plan from subscription
+            price_id = subscription['items']['data'][0]['price']['id']
+            plan_map = {
+                settings.STRIPE_PROFESSIONAL_PRICE_ID: 'professional',
+                settings.STRIPE_PRO_PLUS_PRICE_ID: 'pro_plus',
+            }
+            plan = plan_map.get(price_id, 'free')
+            
+            # Update user
+            user.stripe_subscription_id = subscription_id
+            user.subscription_plan = plan
+            user.subscription_status = subscription['status']
+            user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
+            user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+            
+            db.commit()
+            logger.info(f"✅ Subscription created for user {user.id} ({user.email}): {plan}")
+        except Exception as e:
+            logger.error(f"❌ Error in handle_subscription_created: {str(e)}")
+            logger.error(f"Subscription data: {subscription}")
+            raise
     
     @staticmethod
     async def handle_subscription_updated(subscription: dict, db: Session):

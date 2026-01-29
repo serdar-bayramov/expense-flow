@@ -13,6 +13,12 @@ logger = logging.getLogger(__name__)
 # Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+# Debug: Log if API key is set (first/last 4 chars only for security)
+if stripe.api_key:
+    logger.info(f"✅ Stripe API key loaded: {stripe.api_key[:7]}...{stripe.api_key[-4:]}")
+else:
+    logger.error("❌ Stripe API key is empty!")
+
 
 class StripeService:
     """Service for Stripe operations"""

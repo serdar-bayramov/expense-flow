@@ -158,12 +158,18 @@ async def stripe_webhook(
     event_type = event['type']
     data = event['data']['object']
     
-    logger.info(f"Received webhook: {event_type}")
+    logger.info(f"Received Stripe webhook: {event_type}")
     
     try:
         if event_type == 'checkout.session.completed':
-            # Payment successful, subscription created
+            # Payment successful, retrieve subscription details
             logger.info(f"Checkout completed: {data['id']}")
+            # Get the subscription ID from the checkout session
+            subscription_id = data.get('subscription')
+            if subscription_id:
+                # Retrieve full subscription object from Stripe
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                await SubscriptionService.handle_subscription_created(subscription, db)
         
         elif event_type == 'customer.subscription.created':
             await SubscriptionService.handle_subscription_created(data, db)
