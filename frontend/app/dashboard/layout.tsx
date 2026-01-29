@@ -245,14 +245,13 @@ export default function DashboardLayout({
             <div className="flex items-center gap-4">
               {/* Plan Badge */}
               {mounted && (
-                <button
-                  onClick={() => setUpgradeDialogOpen(true)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors cursor-pointer ${planBadge.className}`}
-                  title="Click to manage subscription"
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${planBadge.className}`}
+                  title={`Current plan: ${planBadge.label}`}
                 >
                   <PlanIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">{planBadge.label}</span>
-                </button>
+                </div>
               )}
               
               {/* Theme toggle */}

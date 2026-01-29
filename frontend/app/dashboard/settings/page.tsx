@@ -11,9 +11,9 @@ import { Progress } from '@/components/ui/progress';
 import { authAPI, API_URL } from '@/lib/api';
 import { stripeService } from '@/lib/stripe';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp, CreditCard } from 'lucide-react';
+import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
+import { PlanSelector } from '@/components/plan-selector';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -46,7 +46,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null);
-  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -141,27 +141,28 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePlanUpdated = async () => {
-    // Refresh data after plan update
+  const handleSelectPlan = async (planId: 'free' | 'professional' | 'pro_plus') => {
     const token = await getToken();
     if (!token) return;
 
+    setIsChangingPlan(true);
     try {
-      const userData = await authAPI.me(token);
-      setUser(userData);
-      
-      const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const usageData = await response.json();
-      setUsage(usageData);
-
+      if (planId === 'free') {
+        // Downgrade to free - open billing portal to cancel
+        const portalUrl = await stripeService.createBillingPortalSession(token);
+        window.location.href = portalUrl;
+      } else {
+        // Upgrade/change to paid plan - create checkout session
+        const checkoutUrl = await stripeService.createCheckoutSession(token, planId);
+        window.location.href = checkoutUrl;
+      }
+    } catch (error: any) {
       toast({
-        title: 'Plan Updated',
-        description: 'Your subscription has been updated successfully.',
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to change plan',
       });
-    } catch (error) {
-      console.error('Failed to refresh:', error);
+      setIsChangingPlan(false);
     }
   };
 
@@ -192,78 +193,62 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Subscription & Usage */}
+      {/* Plan & Billing */}
       {usage && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Current Plan */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
                 <CardTitle className="flex items-center gap-2">
                   {(() => {
                     const PlanIcon = getPlanIcon(usage.plan);
                     return <PlanIcon className={`h-6 w-6 ${getPlanColor(usage.plan)}`} />;
                   })()}
-                  Current Plan
+                  Plan & Billing
                 </CardTitle>
-                <div className="flex gap-2">
-                  {usage.plan !== 'free' && (
-                    <Button 
-                      onClick={handleManageSubscription} 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 sm:flex-none"
-                      disabled={isLoadingBilling}
-                    >
+                <CardDescription>Choose your plan and manage billing</CardDescription>
+              </div>
+              {usage.plan !== 'free' && (
+                <Button 
+                  onClick={handleManageSubscription} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={isLoadingBilling}
+                >
+                  {isLoadingBilling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      {isLoadingBilling ? 'Loading...' : 'Manage Billing'}
-                    </Button>
+                      Manage Billing
+                    </>
                   )}
-                  <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm" className="flex-1 sm:flex-none">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    {usage.plan === 'free' ? 'Upgrade' : 'Change'}
-                  </Button>
-                </div>
-              </div>
-              <CardDescription>Your active subscription plan</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold capitalize text-gray-900 dark:text-white">
-                  {usage.plan === 'pro_plus' ? 'Pro Plus' : usage.plan}
-                </span>
-                {usage.is_beta_tester && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                    Beta Tester
-                  </Badge>
-                )}
-              </div>
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {usage.is_beta_tester && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                Beta Tester - Thank you for your support!
+              </Badge>
+            )}
+            
+            <PlanSelector 
+              currentPlan={usage.plan}
+              onSelectPlan={handleSelectPlan}
+              isLoading={isChangingPlan}
+            />
+          </CardContent>
+        </Card>
+      )}
 
-              <div className="pt-4 border-t space-y-3">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Features</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Check className="h-3 w-3 text-green-500" />
-                    <span>Analytics</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Check className="h-3 w-3 text-green-500" />
-                    <span>Templates</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Check className="h-3 w-3 text-green-500" />
-                    <span>CSV Export</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Check className="h-3 w-3 text-green-500" />
-                    <span>Email Support</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Usage Stats */}
+      {/* Monthly Usage */}
+      {usage && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Monthly Usage</CardTitle>
@@ -276,6 +261,9 @@ export default function SettingsPage() {
                   <span className="text-gray-600 dark:text-gray-400">{usage.receipts_used} / {usage.receipts_limit}</span>
                 </div>
                 <Progress value={(usage.receipts_used / usage.receipts_limit) * 100} className="h-2" />
+                {((usage.receipts_used / usage.receipts_limit) * 100 >= 80) && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400">⚠️ Approaching monthly limit</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -284,14 +272,36 @@ export default function SettingsPage() {
                   <span className="text-gray-600 dark:text-gray-400">{usage.mileage_used} / {usage.mileage_limit}</span>
                 </div>
                 <Progress value={(usage.mileage_used / usage.mileage_limit) * 100} className="h-2" />
+                {((usage.mileage_used / usage.mileage_limit) * 100 >= 80) && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400">⚠️ Approaching monthly limit</p>
+                )}
               </div>
+            </CardContent>
+          </Card>
 
-              {((usage.receipts_used / usage.receipts_limit) * 100 >= 80 || (usage.mileage_used / usage.mileage_limit) * 100 >= 80) && usage.plan === 'free' && (
-                <div className="pt-4 border-t">
-                  <Button onClick={() => setUpgradeDialogOpen(true)} className="w-full" size="sm">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Upgrade for More
-                  </Button>
+          {/* Quick Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Status</CardTitle>
+              <CardDescription>Your subscription details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Current Plan</span>
+                <span className="text-lg font-bold capitalize">
+                  {usage.plan === 'pro_plus' ? 'Pro Plus' : usage.plan}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  Active
+                </Badge>
+              </div>
+              {usage.features.support_level && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Support Level</span>
+                  <span className="text-sm font-medium capitalize">{usage.features.support_level}</span>
                 </div>
               )}
             </CardContent>
@@ -493,16 +503,6 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Upgrade Plan Dialog */}
-      {usage && (
-        <UpgradePlanDialog
-          open={upgradeDialogOpen}
-          onOpenChange={setUpgradeDialogOpen}
-          currentPlan={usage.plan as 'free' | 'professional' | 'pro_plus'}
-          onPlanUpdated={handlePlanUpdated}
-        />
-      )}
     </div>
   );
 }
