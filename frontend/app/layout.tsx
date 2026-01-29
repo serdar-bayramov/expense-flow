@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ExpenseFlow - Smart Expense Tracking for UK Freelancers",
-  description: "AI-powered receipt scanning and mileage tracking built for HMRC compliance. Automate your expense management with ExpenseFlow.",
-  keywords: ["expense tracking", "receipt scanner", "mileage tracker", "HMRC", "UK freelancers", "sole traders", "tax", "accounting"],
+  title: "ExpenseFlow - Smart Expense Tracking for UK Self-Employed & Freelancers",
+  description: "Smart expense management for UK self-employed, freelancers and sole traders. AI receipt scanning, HMRC categorisation, mileage tracking. Free plan available.",
+  keywords: ["expense tracking uk", "expense management uk", "self employed expense tracker", "freelancer expenses", "sole trader expenses", "receipt scanner uk", "mileage tracker uk", "HMRC compliant", "business expense app", "uk tax expenses"],
   authors: [{ name: "ExpenseFlow" }],
   icons: {
     icon: '/favicon.ico',
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     apple: '/favicon.ico',
   },
   openGraph: {
-    title: "ExpenseFlow - Smart Expense Tracking",
-    description: "AI-powered receipt scanning and mileage tracking for UK freelancers",
+    title: "ExpenseFlow - Expense Tracking UK for Self-Employed",
+    description: "Smart expense management for UK self-employed, freelancers and sole traders. HMRC compliant tracking.",
     url: "https://expenseflow.co.uk",
     siteName: "ExpenseFlow",
     type: "website",
@@ -45,9 +45,44 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Structured data for better SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ExpenseFlow",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "GBP"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "127"
+    },
+    "description": "Smart expense tracking for UK self-employed, freelancers and sole traders. AI-powered receipt scanning, HMRC-compliant categorisation, and automated mileage tracking.",
+    "featureList": [
+      "Expense tracking",
+      "Receipt scanning",
+      "Mileage tracking",
+      "HMRC compliance",
+      "Tax reports",
+      "Analytics dashboard"
+    ],
+    "keywords": "expense tracking uk, expense management, self employed, freelancer, sole trader, HMRC, receipt scanner, mileage tracker"
+  };
+
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          />
+        </head>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >

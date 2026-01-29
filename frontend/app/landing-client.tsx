@@ -106,10 +106,10 @@ export default function LandingClientPage() {
             Built to HMRC Guidelines
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl mx-auto">
-            Email or upload receipts. We'll handle the rest.
+            Smart Expense Tracking for UK Self-Employed & Freelancers
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Just email or upload your receipts. Our AI extracts the data, categorises for HMRC, and organises everything. Track mileage, view analytics, and export tax-ready reports.
+            The easiest expense management app for UK self-employed and freelancers. Email or upload receipts, AI auto-categorises for HMRC, track mileage, and generate tax-ready reports in seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
@@ -137,7 +137,7 @@ export default function LandingClientPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-6">Tired of messy expense tracking?</h2>
+            <h2 className="text-3xl font-bold mb-6">Tired of Manual Expense Management?</h2>
             <ul className="space-y-4">
               <li className="flex items-start">
                 <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
@@ -167,7 +167,7 @@ export default function LandingClientPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-6">ExpenseFlow makes it effortless</h2>
+            <h2 className="text-3xl font-bold mb-6">Smart Expense Tracking Made Simple</h2>
             <ul className="space-y-4">
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />

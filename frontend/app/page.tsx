@@ -2,12 +2,12 @@ import { Metadata } from 'next';
 import LandingClientPage from './landing-client';
 
 export const metadata: Metadata = {
-  title: 'ExpenseFlow - Smart Expense Tracking for UK Freelancers',
-  description: 'Automate your expense tracking with AI-powered receipt scanning and HMRC-compliant categorisation. Perfect for UK freelancers and sole traders.',
-  keywords: 'expense tracking, receipt scanner, UK freelancers, HMRC compliant, mileage tracking, sole traders, tax reports, OCR receipt scanning',
+  title: 'Expense Tracking UK | Smart Expense Management for Self-Employed & Freelancers',
+  description: 'Smart expense tracking for UK self-employed, freelancers and sole traders. AI-powered receipt scanning, HMRC-compliant categorisation, and automated mileage tracking. Try free.',
+  keywords: ['expense tracking uk', 'expense management uk', 'smart expense tracking', 'expense tracker uk', 'self employed expense tracking', 'freelancer expense tracking', 'sole trader expenses', 'receipt scanner uk', 'HMRC expense tracking', 'mileage tracker uk', 'business expense app uk', 'expense app self employed', 'uk freelancer accounting', 'receipt management uk', 'expense reporting uk'],
   openGraph: {
-    title: 'ExpenseFlow - Smart Expense Tracking for UK Freelancers',
-    description: 'Automate your expense tracking with AI-powered receipt scanning and HMRC-compliant categorisation.',
+    title: 'Expense Tracking UK | Smart Management for Self-Employed & Freelancers',
+    description: 'Smart expense tracking for UK self-employed and freelancers. AI receipt scanning, HMRC categorisation, automated mileage tracking. Start free.',
     url: 'https://expenseflow.co.uk',
     siteName: 'ExpenseFlow',
     locale: 'en_GB',
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ExpenseFlow - Smart Expense Tracking for UK Freelancers',
-    description: 'Automate your expense tracking with AI-powered receipt scanning and HMRC-compliant categorisation.',
+    title: 'Expense Tracking UK | For Self-Employed & Freelancers',
+    description: 'Smart expense management for UK self-employed. AI receipt scanning, HMRC categorisation, mileage tracking. Free plan available.',
   },
 };
 
