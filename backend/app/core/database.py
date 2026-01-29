@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     SENDGRID_RECOVERY_CODE: str | None = None  # Optional recovery code
     CLERK_SECRET_KEY: str  # Clerk authentication
     
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: str = ""  # Will be set after Stripe account creation
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PROFESSIONAL_PRICE_ID: str = ""  # Will be set after Stripe product creation
+    STRIPE_PRO_PLUS_PRICE_ID: str = ""      # Will be set after Stripe product creation
+    FRONTEND_URL: str = "http://localhost:3000"  # For Stripe redirects
+    
     class Config:
         env_file = ".env"
 

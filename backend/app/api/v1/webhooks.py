@@ -1,15 +1,22 @@
 """
-Clerk webhook endpoints for user synchronization
+Webhook endpoints for Clerk user synchronization and Stripe subscription events
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
 import random
 import string
+import stripe
+import logging
 
-from app.core.database import get_db
+from app.core.database import get_db, settings
 from app.models.user import User
+from app.services.subscription_service import SubscriptionService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Initialize Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def generate_unique_receipt_email(base_email: str) -> str:
@@ -116,3 +123,68 @@ async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Clerk webhook error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
+
+@router.post("/stripe")
+async def stripe_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Webhook endpoint for Stripe subscription events.
+    
+    Handles:
+    - checkout.session.completed: Payment successful
+    - customer.subscription.created: New subscription activated
+    - customer.subscription.updated: Subscription modified
+    - customer.subscription.deleted: Subscription cancelled
+    - invoice.payment_succeeded: Payment received
+    - invoice.payment_failed: Payment failed
+    """
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        logger.error("Invalid payload")
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        logger.error("Invalid signature")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    # Handle the event
+    event_type = event['type']
+    data = event['data']['object']
+    
+    logger.info(f"Received webhook: {event_type}")
+    
+    try:
+        if event_type == 'checkout.session.completed':
+            # Payment successful, subscription created
+            logger.info(f"Checkout completed: {data['id']}")
+        
+        elif event_type == 'customer.subscription.created':
+            await SubscriptionService.handle_subscription_created(data, db)
+        
+        elif event_type == 'customer.subscription.updated':
+            await SubscriptionService.handle_subscription_updated(data, db)
+        
+        elif event_type == 'customer.subscription.deleted':
+            await SubscriptionService.handle_subscription_deleted(data, db)
+        
+        elif event_type == 'invoice.payment_succeeded':
+            logger.info(f"Payment succeeded: {data['id']}")
+        
+        elif event_type == 'invoice.payment_failed':
+            logger.warning(f"Payment failed: {data['id']}")
+        
+        else:
+            logger.info(f"Unhandled event type: {event_type}")
+    
+    except Exception as e:
+        logger.error(f"Error handling webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    return {"status": "success"}

@@ -28,6 +28,8 @@ import {
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { PLANS } from '@/lib/plans';
+import { PricingCard } from '@/components/pricing-card';
 
 export default function LandingClientPage() {
   const router = useRouter();
@@ -306,133 +308,6 @@ export default function LandingClientPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="container mx-auto px-4 py-20 bg-muted/30">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-          <p className="text-xl text-muted-foreground">Beta launch: 50 receipts free!</p>
-          <p className="text-sm text-muted-foreground mt-2">Paid plans coming soon</p>
-        </div>
-        <motion.div
-          className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
-          variants={staggerChildren}
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true }}
-        >
-          {/* Free Plan - Beta Active */}
-          <motion.div variants={fadeInUp}>
-            <Card className="h-full border-primary shadow-lg scale-105">
-              <CardContent className="p-6 space-y-6">
-                <Badge className="mb-2">Beta Launch - Active Now</Badge>
-                <div>
-                  <h3 className="text-2xl font-bold">Free Beta</h3>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£0</span>
-                    <span className="text-muted-foreground ml-2">/month</span>
-                  </div>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">
-                    🎉 50 receipts during beta (returns to 10 after)
-                  </p>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    '50 receipts per month (beta)',
-                    '10 mileage claims per month',
-                    'Upload or email receipts',
-                    'AI-powered OCR scanning',
-                    'Analytics dashboard',
-                    'CSV export',
-                    'Journey templates',
-                    'Email support'
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button className="w-full" asChild>
-                  <Link href="/signup">Get Started</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Professional Plan - Coming Soon */}
-          <motion.div variants={fadeInUp}>
-            <Card className="h-full opacity-60">
-              <CardContent className="p-6 space-y-6">
-                <Badge variant="secondary" className="mb-2">Coming Soon</Badge>
-                <div>
-                  <h3 className="text-2xl font-bold">Professional</h3>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£10</span>
-                    <span className="text-muted-foreground ml-2">/month</span>
-                  </div>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    '100 receipts per month',
-                    '50 mileage claims per month',
-                    'Upload or email receipts',
-                    'AI-powered OCR scanning',
-                    'Analytics dashboard',
-                    'CSV export',
-                    'Journey templates',
-                    'Email support'
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 text-gray-400 mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Pro Plus Plan - Coming Soon */}
-          <motion.div variants={fadeInUp}>
-            <Card className="h-full opacity-60">
-              <CardContent className="p-6 space-y-6">
-                <Badge variant="secondary" className="mb-2">Coming Soon</Badge>
-                <div>
-                  <h3 className="text-2xl font-bold">Pro Plus</h3>
-                  <div className="mt-4 flex items-baseline">
-                    <span className="text-4xl font-bold">£17</span>
-                    <span className="text-muted-foreground ml-2">/month</span>
-                  </div>
-                </div>
-                <ul className="space-y-3">
-                  {[
-                    '500 receipts per month',
-                    '200 mileage claims per month',
-                    'Upload or email receipts',
-                    'AI-powered OCR scanning',
-                    'Analytics dashboard',
-                    'CSV + PDF + Image export',
-                    'Journey templates',
-                    'Priority support'
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 text-gray-400 mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-      </section>
-
       {/* FAQ Section */}
       <section id="faq" className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
@@ -484,10 +359,44 @@ export default function LandingClientPage() {
         </motion.div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="container mx-auto px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
+          <p className="text-xl text-muted-foreground">
+            Choose the plan that fits your business. Upgrade or downgrade anytime.
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {PLANS.map((plan, index) => (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+            >
+              <PricingCard
+                plan={plan}
+                onSelectPlan={() => router.push('/signup')}
+                showCTA={true}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20">
         <motion.div
-          className="bg-linear-to-r from-primary to-primary/80 rounded-2xl p-12 text-center text-primary-foreground"
+          className="text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -496,16 +405,16 @@ export default function LandingClientPage() {
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to simplify your expenses?
           </h2>
-          <p className="text-xl mb-8 opacity-90">
+          <p className="text-xl mb-8 text-muted-foreground">
             Join UK freelancers, sole traders & contractors saving 3-5 hours every month
           </p>
-          <Button size="lg" variant="secondary" asChild>
+          <Button size="lg" asChild>
             <Link href="/signup">
               Start Free Trial
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
-          <p className="text-sm mt-4 opacity-75">
+          <p className="text-sm mt-4 text-muted-foreground">
             No credit card required • Cancel anytime
           </p>
         </motion.div>

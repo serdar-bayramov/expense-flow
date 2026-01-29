@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { authAPI, API_URL } from '@/lib/api';
+import { stripeService } from '@/lib/stripe';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
 import {
@@ -40,7 +41,7 @@ interface SubscriptionUsage {
 }
 
 export default function SettingsPage() {
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
@@ -50,6 +51,7 @@ export default function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -95,7 +97,8 @@ export default function SettingsPage() {
 
     try {
       setIsDeleting(true);
-      await authAPI.deleteAccount(token, deletePassword, deleteConfirmText);
+      // For Clerk users, password is not needed - authentication is via Clerk token
+      await authAPI.deleteAccount(token, '', deleteConfirmText);
       
       toast({
         title: 'Account Deleted',
@@ -103,14 +106,14 @@ export default function SettingsPage() {
         className: 'border-gray-200 dark:border-gray-700',
       });
 
-      // Clear local storage and redirect
-      localStorage.removeItem('token');
-      router.push('/login');
+      // Sign out from Clerk and redirect to signup page
+      await signOut();
+      router.push('/signup');
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Deletion Failed',
-        description: error.response?.data?.detail || 'Failed to delete account. Please check your password.',
+        description: error.response?.data?.detail || 'Failed to delete account. Please try again.',
         className: 'bg-red-50 dark:bg-red-950 border-red-300 dark:border-red-800 text-red-900 dark:text-red-100',
       });
     } finally {
@@ -162,6 +165,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    setIsLoadingBilling(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const portalUrl = await stripeService.createBillingPortalSession(token);
+      window.location.href = portalUrl;
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to open billing portal',
+      });
+      setIsLoadingBilling(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -185,10 +206,24 @@ export default function SettingsPage() {
                   })()}
                   Current Plan
                 </CardTitle>
-                <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm" className="w-full sm:w-auto">
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Change
-                </Button>
+                <div className="flex gap-2">
+                  {usage.plan !== 'free' && (
+                    <Button 
+                      onClick={handleManageSubscription} 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 sm:flex-none"
+                      disabled={isLoadingBilling}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      {isLoadingBilling ? 'Loading...' : 'Manage Billing'}
+                    </Button>
+                  )}
+                  <Button onClick={() => setUpgradeDialogOpen(true)} variant="outline" size="sm" className="flex-1 sm:flex-none">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    {usage.plan === 'free' ? 'Upgrade' : 'Change'}
+                  </Button>
+                </div>
               </div>
               <CardDescription>Your active subscription plan</CardDescription>
             </CardHeader>
@@ -418,20 +453,6 @@ export default function SettingsPage() {
 
             <div className="space-y-3 pt-2">
               <div>
-                <Label htmlFor="delete-password" className="text-sm font-medium">
-                  Enter your password to confirm
-                </Label>
-                <Input
-                  id="delete-password"
-                  type="password"
-                  placeholder="Your password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="delete-confirm" className="text-sm font-medium">
                   Type <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 font-mono">DELETE</code> to confirm
                 </Label>
@@ -443,6 +464,9 @@ export default function SettingsPage() {
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   className="mt-1.5"
                 />
+                <p className="text-xs text-muted-foreground mt-2">
+                  You are authenticated via Clerk. No password verification needed.
+                </p>
               </div>
             </div>
           </div>
@@ -462,7 +486,7 @@ export default function SettingsPage() {
             <Button
               variant="destructive"
               onClick={handleDeleteAccount}
-              disabled={isDeleting || deleteConfirmText !== 'DELETE' || !deletePassword}
+              disabled={isDeleting || deleteConfirmText !== 'DELETE'}
             >
               {isDeleting ? 'Deleting...' : 'Delete Account Permanently'}
             </Button>
