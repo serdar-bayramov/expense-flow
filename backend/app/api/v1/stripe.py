@@ -20,15 +20,36 @@ async def create_checkout_session(
     db: Session = Depends(get_db)
 ):
     """
-    Create Stripe Checkout session for plan upgrade
+    Create Stripe Checkout session for plan upgrade/change
+    
+    Handles:
+    - New subscriptions (free → paid)
+    - Plan upgrades (professional → pro_plus)
+    - Plan downgrades (pro_plus → professional)
+    
+    Note: If user has active subscription, they should use billing portal for cancellations.
+    For plan changes, cancel the old subscription and create new one.
     """
     # Validate plan
     if request.plan not in ['professional', 'pro_plus']:
         raise HTTPException(status_code=400, detail="Invalid plan")
     
-    # Check if user already has active subscription
-    if current_user.subscription_plan != 'free':
-        raise HTTPException(status_code=400, detail="User already has active subscription. Use billing portal to manage.")
+    # Check if user is trying to "upgrade" to their current plan
+    if current_user.subscription_plan == request.plan:
+        raise HTTPException(status_code=400, detail=f"You're already on the {request.plan} plan")
+    
+    # If user has active subscription to different plan, cancel it first
+    if current_user.subscription_plan not in ['free', request.plan] and current_user.stripe_subscription_id:
+        try:
+            # Cancel current subscription
+            await StripeService.cancel_subscription(current_user.stripe_subscription_id)
+            # Update user immediately
+            current_user.subscription_plan = 'free'
+            current_user.stripe_subscription_id = None
+            db.commit()
+        except Exception as e:
+            # Log but don't fail - user can still create new subscription
+            print(f"Warning: Could not cancel old subscription: {e}")
     
     # Create checkout session
     url = await SubscriptionService.create_checkout_session(
