@@ -96,8 +96,15 @@ class SubscriptionService:
     async def handle_subscription_created(subscription: dict, db: Session):
         """Handle subscription.created webhook"""
         try:
-            customer_id = subscription['customer']
-            subscription_id = subscription['id']
+            # Log the full subscription data for debugging
+            logger.info(f"Processing subscription data: {type(subscription)}")
+            
+            customer_id = subscription.get('customer')
+            subscription_id = subscription.get('id')
+            
+            if not customer_id or not subscription_id:
+                logger.error(f"Missing customer_id or subscription_id in data")
+                return
             
             # Find user by stripe_customer_id
             user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
@@ -106,25 +113,46 @@ class SubscriptionService:
                 return
             
             # Determine plan from subscription
-            price_id = subscription['items']['data'][0]['price']['id']
+            items = subscription.get('items', {})
+            if isinstance(items, dict):
+                data = items.get('data', [])
+            else:
+                data = items
+                
+            if not data:
+                logger.error(f"No items found in subscription")
+                return
+                
+            price_id = data[0].get('price', {}).get('id') if isinstance(data[0].get('price'), dict) else data[0].get('plan', {}).get('id')
+            
             plan_map = {
                 settings.STRIPE_PROFESSIONAL_PRICE_ID: 'professional',
                 settings.STRIPE_PRO_PLUS_PRICE_ID: 'pro_plus',
             }
             plan = plan_map.get(price_id, 'free')
             
+            # Get current_period_end - could be at subscription level or item level
+            current_period_end = subscription.get('current_period_end')
+            if not current_period_end and data:
+                current_period_end = data[0].get('current_period_end')
+            
+            if not current_period_end:
+                logger.error(f"Could not find current_period_end in subscription data")
+                return
+            
             # Update user
             user.stripe_subscription_id = subscription_id
             user.subscription_plan = plan
-            user.subscription_status = subscription['status']
-            user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
+            user.subscription_status = subscription.get('status', 'active')
+            user.subscription_current_period_end = datetime.fromtimestamp(current_period_end)
             user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
             
             db.commit()
             logger.info(f"✅ Subscription created for user {user.id} ({user.email}): {plan}")
         except Exception as e:
             logger.error(f"❌ Error in handle_subscription_created: {str(e)}")
-            logger.error(f"Subscription data: {subscription}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise
     
     @staticmethod
