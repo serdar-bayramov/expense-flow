@@ -38,8 +38,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_invite_codes_code'), 'invite_codes', ['code'], unique=True)
     op.create_index(op.f('ix_invite_codes_id'), 'invite_codes', ['id'], unique=False)
-    op.drop_index(op.f('ix_journey_templates_user_id'), table_name='journey_templates')
-    op.drop_table('journey_templates')
+    # REMOVED: op.drop_index and op.drop_table for journey_templates (table should remain)
     
     # Add columns with nullable=True first, then set defaults and make them NOT NULL
     op.add_column('users', sa.Column('subscription_plan', sa.String(), nullable=True))
@@ -77,21 +76,7 @@ def downgrade() -> None:
     op.drop_column('users', 'stripe_subscription_id')
     op.drop_column('users', 'stripe_customer_id')
     op.drop_column('users', 'subscription_plan')
-    op.create_table('journey_templates',
-    sa.Column('id', sa.UUID(), autoincrement=False, nullable=False),
-    sa.Column('user_id', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('name', sa.VARCHAR(length=200), autoincrement=False, nullable=False),
-    sa.Column('start_location', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('end_location', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('vehicle_type', postgresql.ENUM('CAR', 'MOTORCYCLE', 'BICYCLE', name='vehicletype'), autoincrement=False, nullable=False),
-    sa.Column('business_purpose', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('is_round_trip', sa.BOOLEAN(), server_default=sa.text('false'), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('journey_templates_user_id_fkey'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id', name=op.f('journey_templates_pkey'))
-    )
-    op.create_index(op.f('ix_journey_templates_user_id'), 'journey_templates', ['user_id'], unique=False)
+    # REMOVED: journey_templates recreation in downgrade (table should remain)
     op.drop_index(op.f('ix_invite_codes_id'), table_name='invite_codes')
     op.drop_index(op.f('ix_invite_codes_code'), table_name='invite_codes')
     op.drop_table('invite_codes')
