@@ -184,9 +184,9 @@ class SubscriptionService:
             
             # Map price IDs to plans
             from app.core.database import settings
-            if price_id == settings.STRIPE_PRICE_PROFESSIONAL:
+            if price_id == settings.STRIPE_PROFESSIONAL_PRICE_ID:
                 new_plan = 'professional'
-            elif price_id == settings.STRIPE_PRICE_PRO_PLUS:
+            elif price_id == settings.STRIPE_PRO_PLUS_PRICE_ID:
                 new_plan = 'pro_plus'
             else:
                 new_plan = old_plan  # Keep current if price not recognized

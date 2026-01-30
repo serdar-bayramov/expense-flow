@@ -47,7 +47,7 @@ async def create_checkout_session(
     if current_user.subscription_plan != 'free' and current_user.stripe_subscription_id:
         try:
             # Get price ID for new plan
-            price_id = settings.STRIPE_PRICE_PROFESSIONAL if request.plan == 'professional' else settings.STRIPE_PRICE_PRO_PLUS
+            price_id = settings.STRIPE_PROFESSIONAL_PRICE_ID if request.plan == 'professional' else settings.STRIPE_PRO_PLUS_PRICE_ID
             
             # Modify existing subscription (upgrade immediately, downgrade at period end)
             await StripeService.update_subscription(
