@@ -30,6 +30,8 @@ interface SubscriptionUsage {
   mileage_used: number;
   mileage_limit: number;
   is_beta_tester: boolean;
+  subscription_cancel_at_period_end: boolean;
+  subscription_current_period_end: string | null;
   features: {
     analytics_dashboard: boolean;
     export_reports: boolean;
@@ -242,6 +244,25 @@ export default function SettingsPage() {
               <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                 Beta Tester - Thank you for your support!
               </Badge>
+            )}
+            
+            {usage.subscription_cancel_at_period_end && usage.subscription_current_period_end && (
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-orange-900 dark:text-orange-100">Subscription Cancellation Scheduled</h4>
+                    <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
+                      Your subscription will be cancelled on{' '}
+                      <strong>{new Date(usage.subscription_current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                      You'll keep your current plan benefits until then.
+                    </p>
+                    <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
+                      Want to keep your subscription? Use the "Manage Billing" button to reactivate it.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
             
             <PlanSelector 

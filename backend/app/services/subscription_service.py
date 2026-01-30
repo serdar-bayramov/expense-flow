@@ -166,13 +166,21 @@ class SubscriptionService:
             logger.error(f"User not found for subscription: {subscription_id}")
             return
         
+        # Get the cancel_at_period_end flag
+        cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+        
         # Update user
         user.subscription_status = subscription['status']
         user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
-        user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+        user.subscription_cancel_at_period_end = cancel_at_period_end
+        
+        # If subscription was cancelled at period end, keep the plan active until then
+        # The plan will be downgraded to 'free' when subscription.deleted fires
+        if cancel_at_period_end:
+            logger.info(f"Subscription {subscription_id} will cancel at period end for user {user.id}")
         
         db.commit()
-        logger.info(f"Subscription updated for user {user.id}")
+        logger.info(f"Subscription updated for user {user.id}: status={subscription['status']}, cancel_at_period_end={cancel_at_period_end}")
     
     @staticmethod
     async def handle_subscription_deleted(subscription: dict, db: Session):
