@@ -155,11 +155,14 @@ def delete_account(
             detail="Please type DELETE to confirm account deletion"
         )
     
-    # Store clerk_user_id before deletion
+    # Store clerk_user_id and stripe IDs before deletion
     clerk_user_id = current_user.clerk_user_id
+    stripe_customer_id = current_user.stripe_customer_id
+    stripe_subscription_id = current_user.stripe_subscription_id
     
     # GDPR allows up to 30 days to delete data, but we do immediate deletion
     # This permanently removes ALL user data including:
+    # - Stripe subscription and customer
     # - Receipts and images
     # - Mileage claims
     # - Journey templates
@@ -170,14 +173,42 @@ def delete_account(
     receipt_image_urls = []
     
     try:
-        # Collect receipt image URLs before deletion for GCS cleanup
+        # 1. Cancel Stripe subscription and delete customer (if exists)
+        if stripe_subscription_id or stripe_customer_id:
+            try:
+                import stripe
+                from app.core.config import settings
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                
+                # Cancel active subscription immediately
+                if stripe_subscription_id:
+                    try:
+                        stripe.Subscription.delete(stripe_subscription_id)
+                        print(f"✅ Cancelled and deleted Stripe subscription: {stripe_subscription_id}")
+                    except stripe.error.InvalidRequestError as e:
+                        # Subscription might already be cancelled or doesn't exist
+                        print(f"⚠️ Could not delete subscription (may already be cancelled): {e}")
+                
+                # Delete Stripe customer (this also cancels all their subscriptions)
+                if stripe_customer_id:
+                    try:
+                        stripe.Customer.delete(stripe_customer_id)
+                        print(f"✅ Deleted Stripe customer: {stripe_customer_id}")
+                    except stripe.error.InvalidRequestError as e:
+                        print(f"⚠️ Could not delete Stripe customer: {e}")
+                        
+            except Exception as stripe_error:
+                print(f"⚠️ Error cleaning up Stripe: {stripe_error}")
+                # Don't fail the entire operation if Stripe cleanup fails
+        
+        # 2. Collect receipt image URLs before deletion for GCS cleanup
         try:
             receipts = db.query(Receipt).filter(Receipt.user_id == user_id).all()
             receipt_image_urls = [r.image_url for r in receipts if r.image_url]
         except Exception:
             pass
         
-        # Method 1: Try to use SQLAlchemy cascade (if all relationships are properly configured)
+        # 3. Method 1: Try to use SQLAlchemy cascade (if all relationships are properly configured)
         # This is cleanest but may fail if tables don't exist
         try:
             # Refresh to ensure we have latest data

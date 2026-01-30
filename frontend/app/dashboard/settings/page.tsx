@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { authAPI, API_URL } from '@/lib/api';
 import { stripeService } from '@/lib/stripe';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlanSelector } from '@/components/plan-selector';
@@ -45,6 +45,7 @@ interface SubscriptionUsage {
 export default function SettingsPage() {
   const { getToken, signOut } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null);

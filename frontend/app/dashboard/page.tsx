@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car } from 'lucide-react';
@@ -9,9 +9,11 @@ import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/a
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@clerk/nextjs';
+import { stripeService } from '@/lib/stripe';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { getToken } = useAuth();
   const [user, setUser] = useState<any>(null);
@@ -35,6 +37,29 @@ export default function DashboardPage() {
         // Fetch user data
         const userData = await authAPI.me(token);
         setUser(userData);
+
+        // Check if user came from signup with a plan to upgrade to
+        const upgradePlan = searchParams.get('upgrade');
+        if (upgradePlan && (upgradePlan === 'professional' || upgradePlan === 'pro_plus')) {
+          // Only trigger if user is currently on free plan
+          if (userData.subscription_plan === 'free') {
+            // Trigger checkout flow automatically
+            try {
+              const checkoutUrl = await stripeService.createCheckoutSession(token, upgradePlan as 'professional' | 'pro_plus');
+              window.location.href = checkoutUrl;
+              return; // Don't load dashboard data, we're redirecting
+            } catch (error) {
+              console.error('Failed to start checkout:', error);
+              toast({
+                variant: 'destructive',
+                title: 'Checkout Failed',
+                description: 'Failed to start checkout. Please try upgrading from Settings.',
+              });
+              // Remove the upgrade parameter from URL
+              router.replace('/dashboard');
+            }
+          }
+        }
 
         // Fetch all receipts and mileage stats
         const [allReceipts, mileageData] = await Promise.all([
@@ -74,7 +99,7 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, [getToken]);
+  }, [getToken, router, searchParams, toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

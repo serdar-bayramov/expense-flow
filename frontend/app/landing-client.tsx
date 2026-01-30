@@ -385,7 +385,13 @@ export default function LandingClientPage() {
             >
               <PricingCard
                 plan={plan}
-                onSelectPlan={() => router.push('/signup')}
+                onSelectPlan={(planId) => {
+                  if (planId === 'free') {
+                    router.push('/signup');
+                  } else {
+                    router.push(`/signup?plan=${planId}`);
+                  }
+                }}
                 showCTA={true}
               />
             </motion.div>
