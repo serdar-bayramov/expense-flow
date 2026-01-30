@@ -8,15 +8,15 @@ function SignupContent() {
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan');
   
-  const afterSignUpUrl = plan ? `/dashboard?upgrade=${plan}` : '/dashboard';
+  const redirectUrl = plan ? `/dashboard?upgrade=${plan}` : '/dashboard';
   
   return (
     <div className="flex min-h-screen items-center justify-center">
       <SignUp 
         routing="hash" 
         signInUrl="/login" 
-        afterSignInUrl="/dashboard"
-        afterSignUpUrl={afterSignUpUrl}
+        afterSignInUrl={redirectUrl}
+        afterSignUpUrl={redirectUrl}
       />
     </div>
   );
