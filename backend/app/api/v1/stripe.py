@@ -4,6 +4,7 @@ Stripe API endpoints
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+import logging
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.services.subscription_service import SubscriptionService
@@ -150,10 +151,17 @@ async def sync_subscription_from_stripe(
         # Fetch current subscription from Stripe
         subscription = await StripeService.get_subscription(current_user.stripe_subscription_id)
         
+        # Extract current_period_end - handle both old and new API versions
+        current_period_end = getattr(subscription, 'current_period_end', None)
+        if not current_period_end and hasattr(subscription, 'items') and subscription.items.data:
+            # Fallback: get from first subscription item (new API version)
+            current_period_end = subscription.items.data[0].current_period_end
+        
         # Update database with current Stripe data
         current_user.subscription_status = subscription.status
         current_user.subscription_cancel_at_period_end = subscription.cancel_at_period_end
-        current_user.subscription_current_period_end = datetime.fromtimestamp(subscription.current_period_end)
+        if current_period_end:
+            current_user.subscription_current_period_end = datetime.fromtimestamp(current_period_end)
         db.commit()
         
         return {
@@ -163,4 +171,5 @@ async def sync_subscription_from_stripe(
         }
     except Exception as e:
         db.rollback()
+        logger.error(f"Failed to sync subscription: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to sync: {str(e)}")
