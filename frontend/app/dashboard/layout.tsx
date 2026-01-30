@@ -73,7 +73,10 @@ export default function DashboardLayout({
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        router.push('/login');
+        // Don't redirect to login - this causes infinite loop if backend returns 403
+        // User is authenticated with Clerk, so show error state instead
+        setUserEmail('error@example.com');
+        setUserPlan('free');
       }
     };
 
