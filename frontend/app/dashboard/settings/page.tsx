@@ -71,6 +71,25 @@ export default function SettingsPage() {
           });
           const usageData = await response.json();
           setUsage(usageData);
+          
+          // Check if user just returned from Stripe portal
+          if (sessionStorage.getItem('stripe_portal_visited') === 'true') {
+            sessionStorage.removeItem('stripe_portal_visited');
+            
+            // Show appropriate message based on cancellation status
+            if (usageData.subscription_cancel_at_period_end) {
+              toast({
+                title: 'Subscription Status',
+                description: 'Your subscription is scheduled to cancel at the end of your billing period.',
+                className: 'border-orange-200 dark:border-orange-800',
+              });
+            } else if (userData.subscription_plan !== 'free') {
+              toast({
+                title: 'Subscription Active',
+                description: 'Your subscription is active and will renew automatically.',
+              });
+            }
+          }
         } catch (error) {
           console.error('Failed to fetch user:', error);
         }
@@ -191,6 +210,10 @@ export default function SettingsPage() {
       if (!token) return;
 
       const portalUrl = await stripeService.createBillingPortalSession(token);
+      
+      // Store a flag to refresh data when user returns
+      sessionStorage.setItem('stripe_portal_visited', 'true');
+      
       window.location.href = portalUrl;
     } catch (error: any) {
       toast({
