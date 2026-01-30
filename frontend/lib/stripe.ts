@@ -37,7 +37,7 @@ export const stripeService = {
     return data.url;
   },
 
-  async cancelSubscription(token: string): Promise<void> {
+  async def cancelSubscription(token: string): Promise<void> {
     const response = await fetch(`${API_URL}/api/v1/stripe/cancel-subscription`, {
       method: 'POST',
       headers: {
@@ -49,5 +49,21 @@ export const stripeService = {
       const error = await response.json().catch(() => ({ detail: 'Failed to cancel subscription' }));
       throw new Error(error.detail || 'Failed to cancel subscription');
     }
+  },
+
+  async syncSubscription(token: string): Promise<any> {
+    const response = await fetch(`${API_URL}/api/v1/stripe/sync-subscription`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to sync subscription' }));
+      throw new Error(error.detail || 'Failed to sync subscription');
+    }
+
+    return response.json();
   },
 };

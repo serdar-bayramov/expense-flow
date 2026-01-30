@@ -3,6 +3,7 @@ Stripe API endpoints
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.services.subscription_service import SubscriptionService
@@ -132,3 +133,34 @@ async def get_subscription_status(
         "cancel_at_period_end": current_user.subscription_cancel_at_period_end,
         "stripe_customer_id": current_user.stripe_customer_id,
     }
+
+
+@router.post("/sync-subscription")
+async def sync_subscription_from_stripe(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually sync subscription status from Stripe (useful if webhooks fail)
+    """
+    if not current_user.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No active subscription")
+    
+    try:
+        # Fetch current subscription from Stripe
+        subscription = await StripeService.get_subscription(current_user.stripe_subscription_id)
+        
+        # Update database with current Stripe data
+        current_user.subscription_status = subscription.status
+        current_user.subscription_cancel_at_period_end = subscription.cancel_at_period_end
+        current_user.subscription_current_period_end = datetime.fromtimestamp(subscription.current_period_end)
+        db.commit()
+        
+        return {
+            "message": "Subscription synced successfully",
+            "cancel_at_period_end": subscription.cancel_at_period_end,
+            "status": subscription.status
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to sync: {str(e)}")

@@ -60,6 +60,20 @@ export default function SettingsPage() {
       const token = await getToken();
       if (token) {
         try {
+          // Check if user just returned from Stripe portal
+          const returnedFromPortal = sessionStorage.getItem('stripe_portal_visited') === 'true';
+          
+          if (returnedFromPortal) {
+            sessionStorage.removeItem('stripe_portal_visited');
+            
+            // Manually sync with Stripe to get latest status
+            try {
+              await stripeService.syncSubscription(token);
+            } catch (error) {
+              console.error('Failed to sync subscription:', error);
+            }
+          }
+          
           const userData = await authAPI.me(token);
           setUser(userData);
           
@@ -72,14 +86,11 @@ export default function SettingsPage() {
           const usageData = await response.json();
           setUsage(usageData);
           
-          // Check if user just returned from Stripe portal
-          if (sessionStorage.getItem('stripe_portal_visited') === 'true') {
-            sessionStorage.removeItem('stripe_portal_visited');
-            
+          if (returnedFromPortal) {
             // Show appropriate message based on cancellation status
             if (usageData.subscription_cancel_at_period_end) {
               toast({
-                title: 'Subscription Status',
+                title: 'Subscription Scheduled to Cancel',
                 description: 'Your subscription is scheduled to cancel at the end of your billing period.',
                 className: 'border-orange-200 dark:border-orange-800',
               });
