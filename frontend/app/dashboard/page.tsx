@@ -93,23 +93,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Beta Banner */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <div className="flex-shrink-0">
-            <span className="text-2xl">🎉</span>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-              Beta Launch Special
-            </h3>
-            <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
-              You have <span className="font-bold">50 receipts per month</span> during our beta period. This will return to 10 receipts after beta ends. Upgrade plans coming soon!
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Welcome Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">

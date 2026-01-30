@@ -37,7 +37,7 @@ export const stripeService = {
     return data.url;
   },
 
-  async def cancelSubscription(token: string): Promise<void> {
+  async cancelSubscription(token: string): Promise<void> {
     const response = await fetch(`${API_URL}/api/v1/stripe/cancel-subscription`, {
       method: 'POST',
       headers: {
