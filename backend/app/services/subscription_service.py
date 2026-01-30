@@ -170,9 +170,16 @@ class SubscriptionService:
         cancel_at_period_end = subscription.get('cancel_at_period_end', False)
         old_cancel_flag = user.subscription_cancel_at_period_end
         
+        # Extract current_period_end - in newer API versions it's nested in items
+        current_period_end = subscription.get('current_period_end')
+        if not current_period_end and subscription.get('items', {}).get('data'):
+            # Fallback: get from first subscription item
+            current_period_end = subscription['items']['data'][0].get('current_period_end')
+        
         # Update user
         user.subscription_status = subscription['status']
-        user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
+        if current_period_end:
+            user.subscription_current_period_end = datetime.fromtimestamp(current_period_end)
         user.subscription_cancel_at_period_end = cancel_at_period_end
         
         db.commit()
