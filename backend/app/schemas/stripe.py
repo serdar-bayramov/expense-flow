@@ -7,6 +7,7 @@ class CheckoutSessionRequest(BaseModel):
 
 class CheckoutSessionResponse(BaseModel):
     url: str
+    message: str | None = None  # Optional message for upgrades/downgrades
 
 
 class BillingPortalResponse(BaseModel):

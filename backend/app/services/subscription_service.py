@@ -176,6 +176,26 @@ class SubscriptionService:
             # Fallback: get from first subscription item
             current_period_end = subscription['items']['data'][0].get('current_period_end')
         
+        # Detect plan changes from price_id
+        items = subscription.get('items', {}).get('data', [])
+        if items:
+            price_id = items[0].get('price', {}).get('id')
+            old_plan = user.subscription_plan
+            
+            # Map price IDs to plans
+            from app.core.database import settings
+            if price_id == settings.STRIPE_PRICE_PROFESSIONAL:
+                new_plan = 'professional'
+            elif price_id == settings.STRIPE_PRICE_PRO_PLUS:
+                new_plan = 'pro_plus'
+            else:
+                new_plan = old_plan  # Keep current if price not recognized
+            
+            # Update plan if changed
+            if new_plan != old_plan and old_plan != 'free':
+                user.subscription_plan = new_plan
+                logger.info(f"📊 Plan changed: {old_plan} → {new_plan} for user {user.id} ({user.email})")
+        
         # Update user
         user.subscription_status = subscription['status']
         if current_period_end:

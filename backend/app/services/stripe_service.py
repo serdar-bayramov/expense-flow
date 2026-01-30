@@ -127,13 +127,18 @@ class StripeService:
             raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     
     @staticmethod
-    async def update_subscription(subscription_id: str, new_price_id: str) -> stripe.Subscription:
+    async def update_subscription(
+        subscription_id: str, 
+        new_price_id: str,
+        is_upgrade: bool = True
+    ) -> stripe.Subscription:
         """
         Update subscription to new price (upgrade/downgrade)
         
         Args:
             subscription_id: Stripe subscription ID
             new_price_id: New Stripe price ID
+            is_upgrade: If True (upgrade), apply immediately. If False (downgrade), schedule for period end.
         
         Returns:
             Updated Stripe Subscription
@@ -141,17 +146,30 @@ class StripeService:
         try:
             subscription = stripe.Subscription.retrieve(subscription_id)
             
-            # Update the subscription item
-            stripe.Subscription.modify(
-                subscription_id,
-                items=[{
-                    'id': subscription['items']['data'][0].id,
-                    'price': new_price_id,
-                }],
-                proration_behavior='create_prorations',  # Prorate the charge
-            )
+            if is_upgrade:
+                # UPGRADE: Apply immediately, prorate charges
+                stripe.Subscription.modify(
+                    subscription_id,
+                    items=[{
+                        'id': subscription['items']['data'][0].id,
+                        'price': new_price_id,
+                    }],
+                    proration_behavior='create_prorations',  # Prorate and charge difference
+                )
+                logger.info(f"⬆️  UPGRADED subscription {subscription_id} to {new_price_id} (immediate)")
+            else:
+                # DOWNGRADE: Schedule for period end (user keeps current plan until they paid for)
+                stripe.Subscription.modify(
+                    subscription_id,
+                    items=[{
+                        'id': subscription['items']['data'][0].id,
+                        'price': new_price_id,
+                    }],
+                    proration_behavior='none',  # Don't charge/refund
+                    billing_cycle_anchor='unchanged',  # Keep current billing date
+                )
+                logger.info(f"⬇️  DOWNGRADED subscription {subscription_id} to {new_price_id} (at period end)")
             
-            logger.info(f"Updated subscription: {subscription_id} to price: {new_price_id}")
             return stripe.Subscription.retrieve(subscription_id)
         except stripe.error.StripeError as e:
             logger.error(f"Failed to update subscription: {str(e)}")

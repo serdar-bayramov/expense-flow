@@ -25,12 +25,9 @@ async def create_checkout_session(
     Create Stripe Checkout session for plan upgrade/change
     
     Handles:
-    - New subscriptions (free → paid)
-    - Plan upgrades (professional → pro_plus)
-    - Plan downgrades (pro_plus → professional)
-    
-    Note: If user has active subscription, they should use billing portal for cancellations.
-    For plan changes, cancel the old subscription and create new one.
+    - New subscriptions (free → paid): Create new subscription
+    - Plan upgrades (professional → pro_plus): Immediate via Stripe modify
+    - Plan downgrades (pro_plus → professional): Scheduled for period end via Stripe modify
     """
     # Validate plan
     if request.plan not in ['professional', 'pro_plus']:
@@ -40,20 +37,48 @@ async def create_checkout_session(
     if current_user.subscription_plan == request.plan:
         raise HTTPException(status_code=400, detail=f"You're already on the {request.plan} plan")
     
-    # If user has active subscription to different plan, cancel it first
-    if current_user.subscription_plan not in ['free', request.plan] and current_user.stripe_subscription_id:
-        try:
-            # Cancel current subscription
-            await StripeService.cancel_subscription(current_user.stripe_subscription_id)
-            # Update user immediately
-            current_user.subscription_plan = 'free'
-            current_user.stripe_subscription_id = None
-            db.commit()
-        except Exception as e:
-            # Log but don't fail - user can still create new subscription
-            print(f"Warning: Could not cancel old subscription: {e}")
+    # Define plan hierarchy for upgrade/downgrade detection
+    plan_hierarchy = {'free': 0, 'professional': 1, 'pro_plus': 2}
+    current_tier = plan_hierarchy.get(current_user.subscription_plan, 0)
+    new_tier = plan_hierarchy.get(request.plan, 0)
+    is_upgrade = new_tier > current_tier
     
-    # Create checkout session
+    # If user has active subscription, modify it instead of creating new one
+    if current_user.subscription_plan != 'free' and current_user.stripe_subscription_id:
+        try:
+            # Get price ID for new plan
+            price_id = settings.STRIPE_PRICE_PROFESSIONAL if request.plan == 'professional' else settings.STRIPE_PRICE_PRO_PLUS
+            
+            # Modify existing subscription (upgrade immediately, downgrade at period end)
+            await StripeService.update_subscription(
+                subscription_id=current_user.stripe_subscription_id,
+                new_price_id=price_id,
+                is_upgrade=is_upgrade
+            )
+            
+            if is_upgrade:
+                # Upgrade: Update DB immediately
+                current_user.subscription_plan = request.plan
+                db.commit()
+                return CheckoutSessionResponse(
+                    url=f"{settings.FRONTEND_URL}/dashboard/settings?upgraded=true",
+                    message=f"Upgraded to {request.plan}! Changes applied immediately."
+                )
+            else:
+                # Downgrade: Will be applied at period end via webhook
+                # Don't update plan in DB yet - webhook will do it
+                db.commit()
+                period_end = current_user.subscription_current_period_end
+                return CheckoutSessionResponse(
+                    url=f"{settings.FRONTEND_URL}/dashboard/settings?downgraded=true",
+                    message=f"You'll switch to {request.plan} on {period_end.strftime('%b %d, %Y')}. You keep your current plan until then!"
+                )
+        except Exception as e:
+            db.rollback()
+            print(f"❌ Failed to modify subscription: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to change plan: {str(e)}")
+    
+    # Free user upgrading to paid plan - create new checkout session
     url = await SubscriptionService.create_checkout_session(
         user=current_user,
         plan=request.plan,
