@@ -123,12 +123,12 @@ export function PlanSelector({ currentPlan, onSelectPlan, isLoading = false }: P
           <div className="text-sm">
             <p className="font-medium">
               {selectedPlan === 'free' 
-                ? 'Cancel subscription and downgrade to Free?' 
+                ? 'Cancel subscription at end of billing period?' 
                 : `Change to ${PLANS.find(p => p.id === selectedPlan)?.name}?`}
             </p>
             <p className="text-muted-foreground text-xs">
               {selectedPlan === 'free'
-                ? 'Your subscription will be cancelled immediately'
+                ? "You'll keep your current plan until your billing period ends"
                 : 'Changes take effect immediately'}
             </p>
           </div>

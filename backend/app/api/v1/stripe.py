@@ -87,7 +87,8 @@ async def cancel_subscription(
     db: Session = Depends(get_db)
 ):
     """
-    Cancel user's active subscription immediately
+    Cancel user's subscription at end of billing period.
+    User keeps access until they've paid for.
     """
     if not current_user.stripe_subscription_id:
         raise HTTPException(status_code=400, detail="No active subscription to cancel")
@@ -95,20 +96,22 @@ async def cancel_subscription(
     try:
         subscription_id = current_user.stripe_subscription_id
         
-        # Cancel subscription immediately in Stripe
-        await StripeService.cancel_subscription(subscription_id)
+        # Cancel subscription at period end (fair to user - they paid for full month)
+        subscription = await StripeService.cancel_subscription(subscription_id, at_period_end=True)
         
-        # Update user in database immediately
-        current_user.subscription_plan = 'free'
-        current_user.subscription_status = 'canceled'
-        current_user.stripe_subscription_id = None
-        current_user.subscription_cancel_at_period_end = False
-        current_user.subscription_current_period_end = None
+        # Update user in database - keep plan active until period end
+        current_user.subscription_cancel_at_period_end = True
+        # Don't change plan yet - will be downgraded via webhook when period ends
         db.commit()
         
-        print(f"✅ Subscription {subscription_id} cancelled for user {current_user.id} ({current_user.email})")
+        period_end = current_user.subscription_current_period_end
+        print(f"✅ Subscription {subscription_id} scheduled to cancel at period end for user {current_user.id} ({current_user.email})")
         
-        return {"message": "Subscription cancelled successfully", "plan": "free"}
+        return {
+            "message": "Subscription will be cancelled at period end",
+            "cancel_at_period_end": True,
+            "period_end": period_end.isoformat() if period_end else None
+        }
     except Exception as e:
         db.rollback()
         print(f"❌ Failed to cancel subscription for user {current_user.id}: {str(e)}")

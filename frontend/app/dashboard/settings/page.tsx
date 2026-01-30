@@ -150,16 +150,25 @@ export default function SettingsPage() {
     setIsChangingPlan(true);
     try {
       if (planId === 'free') {
-        // Cancel subscription immediately via backend
-        await stripeService.cancelSubscription(token);
+        // Cancel subscription at end of billing period
+        const result = await stripeService.cancelSubscription(token);
+        
+        // Refresh user data to show cancellation warning
+        const userData = await authAPI.me(token);
+        setUser(userData);
+        
+        const response = await fetch(`${API_URL}/api/v1/users/me/subscription`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const usageData = await response.json();
+        setUsage(usageData);
         
         toast({
-          title: 'Subscription Cancelled',
-          description: 'Your subscription has been cancelled. Refreshing...',
+          title: 'Subscription Scheduled to Cancel',
+          description: `Your subscription will be cancelled at the end of your billing period. You'll keep access until then.`,
         });
         
-        // Reload page to refresh all components (layout, settings, etc.)
-        window.location.reload();
+        setIsChangingPlan(false);
       } else {
         // Upgrade/change to paid plan - create checkout session
         const checkoutUrl = await stripeService.createCheckoutSession(token, planId);
