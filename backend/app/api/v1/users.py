@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Literal, Optional
+import stripe
 from app.api.deps import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, settings
 from app.models.user import User
 from app.models.receipt import Receipt
 from app.models.mileage_claim import MileageClaim
@@ -176,8 +177,6 @@ def delete_account(
         # 1. Cancel Stripe subscription and delete customer (if exists)
         if stripe_subscription_id or stripe_customer_id:
             try:
-                import stripe
-                from app.core.config import settings
                 stripe.api_key = settings.STRIPE_SECRET_KEY
                 
                 # Cancel active subscription immediately
