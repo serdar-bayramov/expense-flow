@@ -1,0 +1,354 @@
+# The Journey Templates Incident - Detailed Explanation
+
+## Your Questions Answered
+
+### Q1: "How was journey_templates dropped? Isn't drop_table in downgrade()?"
+
+**Answer:** The auto-generated migrations had `op.drop_table()` in **`upgrade()`**, NOT `downgrade()`!
+
+---
+
+## What Actually Happened (Timeline)
+
+### Step 1: You Manually Created the Table
+```sql
+-- You ran this SQL directly on Railway
+CREATE TABLE journey_templates (...);
+```
+
+**Database State:**
+```
+✅ journey_templates table exists in Railway DB
+```
+
+### Step 2: You Created the Model
+```python
+# backend/app/models/journey_template.py
+class JourneyTemplate(Base):
+    __tablename__ = "journey_templates"
+    # ... columns ...
+```
+
+**But you forgot:**
+```python
+# backend/app/models/__init__.py
+# ❌ JourneyTemplate was NOT imported here!
+__all__ = ["User", "Receipt", "Category", ...]
+# Missing: "JourneyTemplate"
+```
+
+### Step 3: You Added Subscription Fields (Later)
+
+You needed to add subscription fields to users, so you ran:
+
+```bash
+alembic revision --autogenerate -m "add_subscription_and_invite_codes"
+```
+
+**What Alembic Did:**
+
+1. **Scanned your code:**
+   ```python
+   from app.models import *
+   # Only imports: User, Receipt, Category, ...
+   # ❌ JourneyTemplate not imported → Alembic can't see it!
+   ```
+
+2. **Looked at your database:**
+   ```sql
+   SELECT tablename FROM pg_tables;
+   -- Results: users, receipts, categories, journey_templates
+   ```
+
+3. **Compared:**
+   ```
+   Models in code: [User, Receipt, Category]
+   Tables in DB:   [users, receipts, categories, journey_templates]
+   
+   Alembic's logic: "journey_templates exists in DB but not in models"
+   Alembic's conclusion: "This table should be REMOVED!"
+   ```
+
+4. **Auto-Generated Migration (WRONG!):**
+   ```python
+   # 29672f48c359_add_subscription_and_invite_codes.py
+   
+   def upgrade() -> None:
+       """Upgrade schema."""
+       # Create new tables
+       op.create_table('invite_codes', ...)
+       
+       # ❌ ALEMBIC ADDED THIS AUTOMATICALLY!
+       op.drop_index('ix_journey_templates_user_id', table_name='journey_templates')
+       op.drop_table('journey_templates')  # ← IN UPGRADE!! 🔥
+       
+       # Add subscription columns to users
+       op.add_column('users', ...)
+   ```
+
+### Step 4: You Deployed to Railway
+
+```bash
+git push origin main
+# Railway automatically runs: alembic upgrade head
+```
+
+**What Happened:**
+
+1. Railway runs the new migration
+2. Migration executes `upgrade()` function
+3. Line runs: `op.drop_table('journey_templates')` 💥
+4. **Your table is deleted!**
+
+### Step 5: Same Thing Happened Again!
+
+Later you added more subscription fields:
+
+```bash
+alembic revision --autogenerate -m "add_stripe_subscription_fields"
+```
+
+**Alembic did the SAME thing:**
+```python
+# c8a88100c2ca_add_stripe_subscription_fields.py
+
+def upgrade() -> None:
+    # ❌ AGAIN!
+    op.drop_index('ix_journey_templates_user_id', table_name='journey_templates')
+    op.drop_table('journey_templates')  # ← IN UPGRADE!! 🔥
+    
+    op.add_column('users', sa.Column('subscription_current_period_end', ...))
+```
+
+---
+
+## Visual Comparison: Correct vs. Incorrect
+
+### ✅ CORRECT Migration (Normal Case)
+```python
+def upgrade() -> None:
+    """Going forward - add new things"""
+    op.create_table('new_table', ...)
+    op.add_column('users', 'new_column')
+
+def downgrade() -> None:
+    """Going backward - undo what upgrade did"""
+    op.drop_column('users', 'new_column')
+    op.drop_table('new_table')  # ← Drop is in downgrade ✅
+```
+
+### ❌ INCORRECT Migration (What Alembic Generated)
+```python
+def upgrade() -> None:
+    """Going forward - but DROPPING things!"""
+    op.create_table('invite_codes', ...)
+    op.drop_table('journey_templates')  # ← Drop in UPGRADE! 🔥
+    op.add_column('users', ...)
+
+def downgrade() -> None:
+    """Going backward"""
+    op.drop_column('users', ...)
+    op.create_table('journey_templates', ...)  # Recreates it
+    op.drop_table('invite_codes')
+```
+
+**Why This Is Wrong:**
+- `upgrade()` should NEVER drop existing tables you're using
+- Alembic put the drop in upgrade because it thought the table was obsolete
+- This happened because JourneyTemplate model wasn't in `__init__.py`
+
+---
+
+## Q2: "Did you create migrations manually? Doesn't Alembic auto-generate?"
+
+**Answer:** Most were auto-generated, but I fixed the broken ones!
+
+### Auto-Generated Migrations
+
+**You ran:**
+```bash
+# Alembic looks at your models and compares to DB
+alembic revision --autogenerate -m "add_subscription_fields"
+```
+
+**Alembic generated:**
+- ✅ `644e419d84b5_initial_migration.py` - Auto-generated (correct)
+- ✅ `573b6efd43eb_add_mileage_claims.py` - Auto-generated (correct)
+- ❌ `29672f48c359_add_subscription.py` - Auto-generated (WRONG! Dropped journey_templates)
+- ❌ `c8a88100c2ca_add_stripe_fields.py` - Auto-generated (WRONG! Dropped journey_templates again)
+
+### Manual Fixes (What I Did)
+
+**I edited the broken migrations:**
+```python
+# BEFORE (Auto-generated by Alembic)
+def upgrade():
+    op.create_table('invite_codes', ...)
+    op.drop_table('journey_templates')  # ← BAD!
+    op.add_column('users', ...)
+
+# AFTER (I manually removed the drop)
+def upgrade():
+    op.create_table('invite_codes', ...)
+    # REMOVED: op.drop_table('journey_templates')
+    op.add_column('users', ...)
+```
+
+**Then I created a NEW migration to fix the damage:**
+```bash
+alembic revision -m "recreate_journey_templates_table"
+```
+
+This one I wrote manually (not auto-generated):
+```python
+# 01944f3c6224_recreate_journey_templates_table.py
+
+def upgrade() -> None:
+    # Check if table exists
+    if 'journey_templates' not in inspector.get_table_names():
+        # Recreate it
+        op.create_table('journey_templates', ...)
+```
+
+---
+
+## How Alembic Auto-Generate Works
+
+### What It Does:
+1. **Imports your models:**
+   ```python
+   from app.models import *  # Gets everything from __init__.py
+   ```
+
+2. **Builds expected schema** from models:
+   ```python
+   Expected tables: [users, receipts, categories, journey_templates]
+   # ← Only if JourneyTemplate is in __init__.py!
+   ```
+
+3. **Queries your database:**
+   ```sql
+   SELECT * FROM information_schema.tables;
+   ```
+
+4. **Compares:**
+   ```
+   In models but NOT in DB → Create table
+   In DB but NOT in models → Drop table  # ← This is what went wrong!
+   Column added to model → Add column
+   Column removed from model → Drop column
+   ```
+
+5. **Generates migration file:**
+   ```python
+   def upgrade():
+       # Operations to make DB match models
+       op.create_table(...)
+       op.drop_table(...)  # ← Can be dangerous!
+   ```
+
+### The Trap:
+If a model exists but isn't imported in `__init__.py`, Alembic can't see it!
+
+```python
+# File exists: app/models/journey_template.py ✅
+# But not imported in: app/models/__init__.py ❌
+
+# Alembic thinks:
+# "journey_templates is in DB but not in my models"
+# "Must be an old table → let me drop it!"
+```
+
+---
+
+## The Fix Applied
+
+### Step 1: Add Model to `__init__.py`
+```python
+# backend/app/models/__init__.py
+from app.models.journey_template import JourneyTemplate
+__all__ = [..., "JourneyTemplate"]  # ← Now Alembic can see it!
+```
+
+### Step 2: Remove Bad Drops from Migrations
+Edited two migration files to remove:
+```python
+# REMOVED from upgrade() functions:
+op.drop_table('journey_templates')
+```
+
+### Step 3: Create Recovery Migration
+```python
+# 01944f3c6224_recreate_journey_templates_table.py
+def upgrade():
+    # Safely recreate the table if missing
+    if 'journey_templates' not in tables:
+        op.create_table('journey_templates', ...)
+```
+
+---
+
+## Key Takeaways
+
+### 1. Auto-Generate is NOT Perfect
+- Alembic can only see models imported in `__init__.py`
+- It will generate destructive operations if it thinks a table is obsolete
+- **Always review auto-generated migrations!**
+
+### 2. The Golden Rule
+**Before running `alembic revision --autogenerate`:**
+```bash
+# Check that ALL models are in __init__.py
+cat app/models/__init__.py
+
+# Should see:
+from app.models.user import User
+from app.models.receipt import Receipt
+from app.models.journey_template import JourneyTemplate  # ← Important!
+__all__ = ["User", "Receipt", "JourneyTemplate"]
+```
+
+### 3. Manual Migrations Are Sometimes Better
+For sensitive operations (like creating tables that exist), write migrations manually:
+```bash
+# Create empty migration
+alembic revision -m "fix_something"
+
+# Edit the file manually
+# Add your own SQL or logic
+```
+
+### 4. Always Review Before Deploying
+```bash
+# After auto-generating:
+alembic revision --autogenerate -m "add_feature"
+
+# ALWAYS open and read the generated file:
+cat alembic/versions/<new_file>.py
+
+# Look for:
+# ❌ op.drop_table() in upgrade()
+# ❌ op.drop_column() for columns still in use
+```
+
+---
+
+## Summary
+
+**Your Question:** "How was journey_templates dropped if drop is in downgrade?"
+
+**Answer:** It WASN'T in downgrade - Alembic auto-generated it in `upgrade()` because:
+1. The model wasn't imported in `__init__.py`
+2. Alembic couldn't see it
+3. Alembic thought: "Table in DB but not in models → must be old → drop it!"
+4. This happened TWICE in two different migrations
+
+**Your Question:** "Did you create migrations manually?"
+
+**Answer:** 
+- Most migrations: Auto-generated by Alembic ✅
+- Problem migrations: Auto-generated but WRONG (dropped journey_templates) ❌
+- Fix migrations: I manually edited them to remove bad drops ✅
+- Recovery migration: I manually created to recreate the table ✅
+
+**Lesson:** Auto-generate is powerful but can be dangerous. Always review the generated code before deploying!
