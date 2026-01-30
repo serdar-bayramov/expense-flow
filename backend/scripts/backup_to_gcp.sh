@@ -10,7 +10,7 @@
 set -e
 
 # Configuration
-GCP_BUCKET="expenseflow-backups"  # Change to your bucket name
+GCP_BUCKET="expense-flow-backups"  # Your GCP bucket name
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
 BACKUP_FILE="/tmp/expenseflow_$DATE.sql.gz"
 
@@ -22,15 +22,24 @@ if ! command -v gsutil &> /dev/null; then
     exit 1
 fi
 
-# Check DATABASE_URL
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ DATABASE_URL not set. Run: railway run ./scripts/backup_to_gcp.sh"
+# Check DATABASE_PUBLIC_URL
+if [ -z "$DATABASE_PUBLIC_URL" ]; then
+    echo "❌ DATABASE_PUBLIC_URL not set. Run: railway run ./scripts/backup_to_gcp.sh"
     exit 1
+fi
+
+# Use PostgreSQL 17 pg_dump to match Railway's version
+if [ -f "/opt/homebrew/opt/postgresql@17/bin/pg_dump" ]; then
+    PG_DUMP="/opt/homebrew/opt/postgresql@17/bin/pg_dump"
+elif [ -f "/usr/local/opt/postgresql@17/bin/pg_dump" ]; then
+    PG_DUMP="/usr/local/opt/postgresql@17/bin/pg_dump"
+else
+    PG_DUMP="pg_dump"
 fi
 
 # Create backup
 echo "📦 Dumping database..."
-pg_dump "$DATABASE_URL" | gzip > "$BACKUP_FILE"
+$PG_DUMP "$DATABASE_PUBLIC_URL" | gzip > "$BACKUP_FILE"
 
 # Get file size
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
