@@ -44,38 +44,42 @@ async def create_checkout_session(
     is_upgrade = new_tier > current_tier
     
     # If user has active subscription, modify it instead of creating new one
-    if current_user.subscription_plan != 'free' and current_user.stripe_subscription_id:
+    # BUT: Don't modify if subscription is scheduled to cancel - create new one instead
+    if (current_user.subscription_plan != 'free' and 
+        current_user.stripe_subscription_id and 
+        not current_user.subscription_cancel_at_period_end):
         try:
             # Get price ID for new plan
             price_id = settings.STRIPE_PROFESSIONAL_PRICE_ID if request.plan == 'professional' else settings.STRIPE_PRO_PLUS_PRICE_ID
             
-            # Modify existing subscription (upgrade immediately, downgrade at period end)
-            await StripeService.update_subscription(
+            # Modify existing subscription (Stripe's standard implementation)
+            # Both upgrades and downgrades happen immediately with prorations
+            updated_sub = await StripeService.update_subscription(
                 subscription_id=current_user.stripe_subscription_id,
                 new_price_id=price_id,
                 is_upgrade=is_upgrade
             )
             
+            # Update plan in database immediately (for both upgrade and downgrade)
+            current_user.subscription_plan = request.plan
+            current_user.subscription_cancel_at_period_end = False  # Remove cancellation flag
+            db.commit()
+            
             if is_upgrade:
-                # Upgrade: Update DB immediately
-                current_user.subscription_plan = request.plan
-                db.commit()
                 return CheckoutSessionResponse(
                     url=f"{settings.FRONTEND_URL}/dashboard/settings?upgraded=true",
                     message=f"Upgraded to {request.plan}! Changes applied immediately."
                 )
             else:
-                # Downgrade: Will be applied at period end via webhook
-                # Don't update plan in DB yet - webhook will do it
-                db.commit()
-                period_end = current_user.subscription_current_period_end
                 return CheckoutSessionResponse(
                     url=f"{settings.FRONTEND_URL}/dashboard/settings?downgraded=true",
-                    message=f"You'll switch to {request.plan} on {period_end.strftime('%b %d, %Y')}. You keep your current plan until then!"
+                    message=f"Downgraded to {request.plan}. You received credit for unused time."
                 )
         except Exception as e:
             db.rollback()
+            import traceback
             print(f"❌ Failed to modify subscription: {e}")
+            print(f"Full traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Failed to change plan: {str(e)}")
     
     # Free user upgrading to paid plan - create new checkout session
@@ -106,6 +110,44 @@ async def create_billing_portal_session(
     )
     
     return BillingPortalResponse(url=session.url)
+
+
+@router.post("/sync-subscription")
+async def sync_subscription_from_stripe(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually sync subscription status from Stripe (useful after using billing portal)
+    """
+    if not current_user.stripe_subscription_id:
+        raise HTTPException(status_code=400, detail="No subscription to sync")
+    
+    try:
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        
+        # Get latest subscription data from Stripe
+        subscription = stripe.Subscription.retrieve(current_user.stripe_subscription_id)
+        
+        # Update database with Stripe's current state
+        current_user.subscription_status = subscription['status']
+        current_user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+        
+        if subscription.get('current_period_end'):
+            from datetime import datetime
+            current_user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
+        
+        db.commit()
+        
+        return {
+            "message": "Subscription synced successfully",
+            "status": subscription['status'],
+            "cancel_at_period_end": subscription.get('cancel_at_period_end', False)
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to sync: {str(e)}")
 
 
 @router.post("/cancel-subscription")

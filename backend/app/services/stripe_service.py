@@ -133,44 +133,50 @@ class StripeService:
         is_upgrade: bool = True
     ) -> stripe.Subscription:
         """
-        Update subscription to new price (upgrade/downgrade)
+        Update subscription to new price (upgrade/downgrade) using Stripe's standard implementation
         
         Args:
             subscription_id: Stripe subscription ID
             new_price_id: New Stripe price ID
-            is_upgrade: If True (upgrade), apply immediately. If False (downgrade), schedule for period end.
+            is_upgrade: If True (upgrade), prorate immediately. If False (downgrade), credit at period end.
         
         Returns:
             Updated Stripe Subscription
         """
         try:
             subscription = stripe.Subscription.retrieve(subscription_id)
+            subscription_item_id = subscription['items']['data'][0]['id']
             
+            # Standard Stripe implementation: Just modify the subscription
+            # proration_behavior controls when changes take effect
             if is_upgrade:
-                # UPGRADE: Apply immediately, prorate charges
-                stripe.Subscription.modify(
+                # UPGRADE: Immediate with prorated charge
+                updated_sub = stripe.Subscription.modify(
                     subscription_id,
                     items=[{
-                        'id': subscription['items']['data'][0].id,
+                        'id': subscription_item_id,
                         'price': new_price_id,
                     }],
-                    proration_behavior='create_prorations',  # Prorate and charge difference
+                    proration_behavior='create_prorations',  # Charge difference immediately
+                    cancel_at_period_end=False,  # Remove cancellation if present
                 )
-                logger.info(f"⬆️  UPGRADED subscription {subscription_id} to {new_price_id} (immediate)")
+                logger.info(f"⬆️  UPGRADED subscription {subscription_id} to {new_price_id}")
+                if subscription.get('cancel_at_period_end'):
+                    logger.info(f"✅ Reactivated subscription (was scheduled to cancel)")
             else:
-                # DOWNGRADE: Schedule for period end (user keeps current plan until they paid for)
-                stripe.Subscription.modify(
+                # DOWNGRADE: Immediate switch with prorated credit
+                # Stripe gives credit for unused time on old plan
+                updated_sub = stripe.Subscription.modify(
                     subscription_id,
                     items=[{
-                        'id': subscription['items']['data'][0].id,
+                        'id': subscription_item_id,
                         'price': new_price_id,
                     }],
-                    proration_behavior='none',  # Don't charge/refund
-                    billing_cycle_anchor='unchanged',  # Keep current billing date
+                    proration_behavior='create_prorations',  # Credit for unused time
                 )
-                logger.info(f"⬇️  DOWNGRADED subscription {subscription_id} to {new_price_id} (at period end)")
+                logger.info(f"⬇️  DOWNGRADED subscription {subscription_id} to {new_price_id}")
             
-            return stripe.Subscription.retrieve(subscription_id)
+            return updated_sub
         except stripe.error.StripeError as e:
             logger.error(f"Failed to update subscription: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")

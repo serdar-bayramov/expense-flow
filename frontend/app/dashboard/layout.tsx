@@ -85,8 +85,19 @@ export default function DashboardLayout({
       const token = await getToken();
       if (!token) return;
 
-      const user = await authAPI.me(token);
+      const [user, usageResponse] = await Promise.all([
+        authAPI.me(token),
+        fetch(`${API_URL}/api/v1/users/me/subscription`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(res => {
+          if (!res.ok) throw new Error('Subscription fetch failed');
+          return res.json();
+        }).catch(() => null)
+      ]);
       setUserPlan((user.subscription_plan || 'free') as 'free' | 'professional' | 'pro_plus');
+      if (usageResponse) {
+        setSubscriptionUsage(usageResponse);
+      }
     } catch (error) {
       console.error('Failed to refresh plan:', error);
     }
