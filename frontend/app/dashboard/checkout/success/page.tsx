@@ -13,26 +13,41 @@ function CheckoutSuccessContent() {
   const { getToken } = useAuth();
   const sessionId = searchParams.get('session_id');
   const [syncing, setSyncing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Sync subscription immediately after successful checkout
     const syncSubscription = async () => {
+      console.log('🔄 Starting sync process...');
+      console.log('📝 Session ID:', sessionId);
+      
       if (sessionId) {
-        console.log('Checkout session:', sessionId);
         try {
           const token = await getToken();
+          console.log('🎫 Got token:', token ? 'YES' : 'NO');
+          
           if (token) {
             // Call sync endpoint to update database with Stripe subscription data
-            await stripeService.syncSubscription(token);
-            console.log('✅ Subscription synced successfully');
+            console.log('📞 Calling sync endpoint...');
+            const result = await stripeService.syncSubscription(token);
+            console.log('✅ Sync result:', result);
+            
+            // Trigger layout refresh to update badge
+            window.dispatchEvent(new Event('subscription-updated'));
+            console.log('📢 Dispatched subscription-updated event');
+          } else {
+            console.error('❌ No token available');
+            setError('Authentication failed');
           }
         } catch (error) {
-          console.error('Failed to sync subscription:', error);
+          console.error('❌ Sync failed:', error);
+          setError(error instanceof Error ? error.message : 'Sync failed');
           // Don't block user, they can still proceed
         } finally {
           setSyncing(false);
         }
       } else {
+        console.warn('⚠️ No session_id in URL');
         setSyncing(false);
       }
     };
@@ -48,8 +63,13 @@ function CheckoutSuccessContent() {
         </div>
         <h1 className="text-3xl font-bold">Payment Successful!</h1>
         <p className="text-muted-foreground text-lg">
-          {syncing ? 'Activating your subscription...' : 'Your subscription has been activated. You now have access to all premium features.'}
+          {syncing ? 'Activating your subscription...' : error ? `Error: ${error}` : 'Your subscription has been activated. You now have access to all premium features.'}
         </p>
+        {error && (
+          <p className="text-sm text-orange-600">
+            Don't worry - your payment was successful. Please refresh the page or contact support if your plan doesn't update.
+          </p>
+        )}
         <div className="space-y-4 pt-4">
           <Button 
             onClick={() => router.push('/dashboard')} 

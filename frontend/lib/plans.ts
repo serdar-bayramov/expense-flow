@@ -36,8 +36,8 @@ export const PLANS: Plan[] = [
     priceMonthly: 0,
     period: 'forever',
     features: [
-      { text: '50 receipts per month (beta)' },
-      { text: '20 mileage claims per month (beta)' },
+      { text: '50 receipts/month (10 after beta)', highlight: true },
+      { text: '20 mileage claims/month (5 after beta)', highlight: true },
       { text: 'Upload or email receipts' },
       { text: 'AI-powered OCR scanning' },
       { text: 'Analytics dashboard' },
@@ -45,7 +45,7 @@ export const PLANS: Plan[] = [
       { text: 'Journey templates' },
       { text: 'Email support' },
     ],
-    betaNote: '🎉 50 receipts & 20 mileage during beta',
+    betaNote: '🎉 Increased limits during beta',
     limits: {
       receipts: 50,
       mileage: 20,

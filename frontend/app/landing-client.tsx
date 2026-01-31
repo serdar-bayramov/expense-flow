@@ -385,12 +385,9 @@ export default function LandingClientPage() {
             >
               <PricingCard
                 plan={plan}
-                onSelectPlan={(planId) => {
-                  if (planId === 'free') {
-                    router.push('/signup');
-                  } else {
-                    router.push(`/signup?plan=${planId}`);
-                  }
+                onSelectPlan={() => {
+                  // All plans start with free signup - user upgrades from dashboard
+                  router.push('/signup');
                 }}
                 showCTA={true}
               />

@@ -106,14 +106,12 @@ export function PricingCard({
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                Redirecting to checkout...
+                Redirecting...
               </>
             ) : isCurrent ? (
               'Current Plan'
-            ) : plan.id === 'free' ? (
-              'Free Forever'
             ) : (
-              'Upgrade Now'
+              'Get Started'
             )}
           </Button>
         )}

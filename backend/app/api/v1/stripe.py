@@ -118,34 +118,105 @@ async def sync_subscription_from_stripe(
     db: Session = Depends(get_db)
 ):
     """
-    Manually sync subscription status from Stripe (useful after using billing portal)
+    Manually sync subscription status from Stripe
+    Handles both existing subscriptions and new subscriptions after checkout
+    Always checks for the latest active subscription from Stripe
     """
-    if not current_user.stripe_subscription_id:
-        raise HTTPException(status_code=400, detail="No subscription to sync")
-    
     try:
         import stripe
         stripe.api_key = settings.STRIPE_SECRET_KEY
         
-        # Get latest subscription data from Stripe
-        subscription = stripe.Subscription.retrieve(current_user.stripe_subscription_id)
+        print(f"🔄 Syncing subscription for user: {current_user.email}")
+        print(f"📋 Current stripe_subscription_id: {current_user.stripe_subscription_id}")
+        print(f"📋 Current stripe_customer_id: {current_user.stripe_customer_id}")
+        
+        # Always check Stripe for the latest active subscription
+        if not current_user.stripe_customer_id:
+            print("❌ No Stripe customer ID")
+            raise HTTPException(status_code=400, detail="No Stripe customer found")
+        
+        print(f"🔍 Looking for active subscriptions via customer: {current_user.stripe_customer_id}")
+        subscriptions = stripe.Subscription.list(
+            customer=current_user.stripe_customer_id,
+            status='active',
+            limit=10  # Get all active to find the best one
+        )
+        
+        if not subscriptions.data:
+            print("⚠️ No active subscriptions found for this customer")
+            return {
+                "message": "No subscription found",
+                "status": "none"
+            }
+        
+        # Find the best subscription: prefer non-cancelled, then most recent
+        subscription = None
+        for sub in subscriptions.data:
+            if not sub.get('cancel_at_period_end', False):
+                subscription = sub
+                print(f"✅ Found active subscription (not cancelled): {subscription.id}")
+                break
+        
+        # If all are cancelled, use the most recent one
+        if not subscription:
+            subscription = subscriptions.data[0]
+            print(f"✅ Using most recent subscription (all are cancelled): {subscription.id}")
+        
+        # Update subscription ID if it changed
+        if current_user.stripe_subscription_id != subscription.id:
+            print(f"📝 Updating subscription ID: {current_user.stripe_subscription_id} → {subscription.id}")
+            current_user.stripe_subscription_id = subscription.id
+        
+        # Determine plan from subscription
+        items = subscription.get('items', {})
+        if isinstance(items, dict):
+            data = items.get('data', [])
+        else:
+            data = items
+            
+        if data:
+            price_id = data[0].get('price', {}).get('id') if isinstance(data[0].get('price'), dict) else data[0].get('plan', {}).get('id')
+            print(f"💰 Price ID: {price_id}")
+            
+            plan_map = {
+                settings.STRIPE_PROFESSIONAL_PRICE_ID: 'professional',
+                settings.STRIPE_PRO_PLUS_PRICE_ID: 'pro_plus',
+            }
+            plan = plan_map.get(price_id, 'free')
+            print(f"📦 Mapped to plan: {plan}")
+            
+            current_user.subscription_plan = plan
         
         # Update database with Stripe's current state
         current_user.subscription_status = subscription['status']
         current_user.subscription_cancel_at_period_end = subscription.get('cancel_at_period_end', False)
         
-        if subscription.get('current_period_end'):
+        # Get current_period_end - check subscription level first, then items
+        current_period_end = subscription.get('current_period_end')
+        if not current_period_end and data:
+            # In newer Stripe API versions, it's nested in items
+            current_period_end = data[0].get('current_period_end')
+        
+        if current_period_end:
             from datetime import datetime
-            current_user.subscription_current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
+            current_user.subscription_current_period_end = datetime.fromtimestamp(current_period_end)
+            print(f"📅 Period end: {datetime.fromtimestamp(current_period_end).strftime('%Y-%m-%d')}")
+        else:
+            print("⚠️ No current_period_end found in subscription data")
         
         db.commit()
+        print(f"✅ Synced: {current_user.email} -> {current_user.subscription_plan}")
         
         return {
             "message": "Subscription synced successfully",
+            "plan": current_user.subscription_plan,
             "status": subscription['status'],
             "cancel_at_period_end": subscription.get('cancel_at_period_end', False)
         }
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ Sync error: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to sync: {str(e)}")
 

@@ -182,9 +182,9 @@ export default function SettingsPage() {
     try {
       if (planId === 'free') {
         // Cancel subscription at end of billing period
-        const result = await stripeService.cancelSubscription(token);
+        await stripeService.cancelSubscription(token);
         
-        // Refresh user data to show cancellation warning
+        // Immediately fetch fresh data to show cancellation warning
         const userData = await authAPI.me(token);
         setUser(userData);
         
@@ -193,6 +193,9 @@ export default function SettingsPage() {
         });
         const usageData = await response.json();
         setUsage(usageData);
+        
+        // Notify layout to refresh (for badge cancellation text)
+        window.dispatchEvent(new Event('subscription-updated'));
         
         toast({
           title: 'Subscription Scheduled to Cancel',
@@ -250,16 +253,20 @@ export default function SettingsPage() {
       {usage && (
         <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {(() => {
-                    const PlanIcon = getPlanIcon(usage.plan);
-                    return <PlanIcon className={`h-6 w-6 ${getPlanColor(usage.plan)}`} />;
-                  })()}
-                  Plan & Billing
-                </CardTitle>
-                <CardDescription>Choose your plan and manage billing</CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const PlanIcon = getPlanIcon(usage.plan);
+                  return <PlanIcon className={`h-5 w-5 ${getPlanColor(usage.plan)}`} />;
+                })()}
+                <div>
+                  <CardTitle>Plan & Billing</CardTitle>
+                  {!usage.subscription_cancel_at_period_end && (
+                    <CardDescription className="text-xs mt-0.5">
+                      {usage.plan === 'free' ? 'Upgrade to unlock more features' : 'Manage your subscription'}
+                    </CardDescription>
+                  )}
+                </div>
               </div>
               {usage.plan !== 'free' && (
                 <Button 
@@ -283,7 +290,7 @@ export default function SettingsPage() {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {usage.is_beta_tester && (
               <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                 Beta Tester - Thank you for your support!
@@ -291,18 +298,15 @@ export default function SettingsPage() {
             )}
             
             {usage.subscription_cancel_at_period_end && usage.subscription_current_period_end && (
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 rounded-lg mb-4">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-orange-900 dark:text-orange-100">Subscription Cancellation Scheduled</h4>
+                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-orange-900 dark:text-orange-100">Subscription Cancelling</h4>
                     <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
-                      Your subscription will be cancelled on{' '}
+                      Your subscription ends on{' '}
                       <strong>{new Date(usage.subscription_current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
-                      You'll keep your current plan benefits until then.
-                    </p>
-                    <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
-                      Want to keep your subscription? Use the "Manage Billing" button to reactivate it.
+                      You can reactivate via "Manage Billing" above, or choose a different plan below.
                     </p>
                   </div>
                 </div>
@@ -407,9 +411,6 @@ export default function SettingsPage() {
               placeholder="Enter your name"
               disabled
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Name editing coming soon
-            </p>
           </div>
         </CardContent>
       </Card>

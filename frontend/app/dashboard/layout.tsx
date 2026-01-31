@@ -72,6 +72,16 @@ export default function DashboardLayout({
           setSubscriptionUsage(usageResponse);
         }
       } catch (error) {
+        // Silently handle 401 errors (user not authenticated with backend yet)
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as any;
+          if (axiosError.response?.status === 401) {
+            console.log('User not yet created in backend, will be auto-created');
+            setUserEmail('loading@example.com');
+            setUserPlan('free');
+            return;
+          }
+        }
         console.error('Failed to fetch user:', error);
         // Don't redirect to login - this causes infinite loop if backend returns 403
         // User is authenticated with Clerk, so show error state instead
@@ -105,6 +115,16 @@ export default function DashboardLayout({
       console.error('Failed to refresh plan:', error);
     }
   };
+
+  // Listen for subscription updates from settings page
+  useEffect(() => {
+    const handleSubscriptionUpdate = () => {
+      handlePlanUpdated();
+    };
+    
+    window.addEventListener('subscription-updated', handleSubscriptionUpdate);
+    return () => window.removeEventListener('subscription-updated', handleSubscriptionUpdate);
+  }, [getToken]);
 
   const getPlanBadge = () => {
     switch (userPlan) {
