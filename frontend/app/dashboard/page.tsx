@@ -8,10 +8,12 @@ import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, Alert
 import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
 import { useAuth } from '@clerk/nextjs';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [mileageStats, setMileageStats] = useState<MileageStats | null>(null);
