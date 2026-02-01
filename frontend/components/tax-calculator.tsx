@@ -121,12 +121,8 @@ export function TaxCalculator() {
                 <span>£{result.income_tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-300">Class 2 NI:</span>
-                <span>£{result.class_2_ni.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-300">Class 4 NI:</span>
-                <span>£{result.class_4_ni.toFixed(2)}</span>
+                <span className="text-gray-600 dark:text-gray-300">National Insurance:</span>
+                <span>£{result.total_ni.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total Tax Due:</span>

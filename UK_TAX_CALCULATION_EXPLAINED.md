@@ -12,9 +12,10 @@ This document explains how the Expense Flow app calculates UK tax liability for 
 - **Additional Rate (45%)**: £125,141+
 
 ### National Insurance (Self-Employed)
-- **Class 2 NI**: £3.50 per week (£182/year) if profit ≥ £12,570
+- **Class 2 NI**: Automatically credited (no payment) if profit ≥ £6,845
+  - If profit < £6,845, you can pay voluntary contributions at £3.50/week
 - **Class 4 NI**: 
-  - 9% on profits between £12,570 - £50,270
+  - 6% on profits between £12,570 - £50,270
   - 2% on profits above £50,270
 
 ### Mileage Allowance
@@ -75,10 +76,12 @@ Income Tax = £7,540 + £29,948 + Additional Band
 
 ### Step 4: Calculate Class 2 National Insurance
 ```
-If Taxable Profit ≥ £12,570:
-    Class 2 NI = £3.50 × 52 weeks = £182.00
+If Taxable Profit ≥ £6,845:
+    Class 2 NI = £0 (automatically credited, no actual payment)
 Else:
-    Class 2 NI = £0
+    Class 2 NI = £0 (optional voluntary contribution of £3.50/week = £182/year)
+
+Note: For tax calculation purposes, Class 2 doesn't affect your tax bill
 ```
 
 ### Step 5: Calculate Class 4 National Insurance
@@ -90,14 +93,14 @@ Class 4 NI = £0
 
 If `£12,570 < Taxable Profit ≤ £50,270`:
 ```
-Class 4 NI = (Taxable Profit - £12,570) × 9%
+Class 4 NI = (Taxable Profit - £12,570) × 6%
 ```
 
 If `Taxable Profit > £50,270`:
 ```
-Lower Band = (£50,270 - £12,570) × 9% = £3,393.00
+Lower Band = (£50,270 - £12,570) × 6% = £2,262.00
 Upper Band = (Taxable Profit - £50,270) × 2%
-Class 4 NI = £3,393.00 + Upper Band
+Class 4 NI = £2,262.00 + Upper Band
 ```
 
 ### Step 6: Calculate Total Tax
@@ -134,25 +137,25 @@ Income Tax = £25,080 × 20% = £5,016.00
 
 ### Step 4: Class 2 NI
 ```
-Profit £37,650 ≥ £12,570
-Class 2 NI = £3.50 × 52 = £182.00
+Profit £37,650 ≥ £6,845
+Class 2 NI = £0 (automatically credited, no actual payment)
 ```
 
 ### Step 5: Class 4 NI
 ```
 Profit £37,650 is between £12,570 and £50,270
-Class 4 NI = (£37,650 - £12,570) × 9% = £2,257.20
+Class 4 NI = (£37,650 - £12,570) × 6% = £1,504.80
 ```
 
 ### Step 6: Total Tax
 ```
-Total Tax = £5,016.00 + £182.00 + £2,257.20 = £7,455.20
+Total Tax = £5,016.00 + £0 + £1,504.80 = £6,520.80
 ```
 
 ### Additional Metrics
 ```
-Monthly Savings Needed = £7,455.20 ÷ 12 = £621.27
-Effective Tax Rate = (£7,455.20 ÷ £45,000) × 100 = 16.57%
+Monthly Savings Needed = £6,520.80 ÷ 12 = £543.40
+Effective Tax Rate = (£6,520.80 ÷ £45,000) × 100 = 14.49%
 Tax Saved by Tracking = (£6,000 + £1,350) × 20% = £1,470.00
 ```
 
@@ -189,27 +192,27 @@ Income Tax = £7,540.00 + £29,948.00 + £194,674.50 = £232,162.50
 
 ### Step 4: Class 2 NI
 ```
-Profit £557,750 ≥ £12,570
-Class 2 NI = £3.50 × 52 = £182.00
+Profit £557,750 ≥ £6,845
+Class 2 NI = £0 (automatically credited, no actual payment)
 ```
 
 ### Step 5: Class 4 NI
 ```
 Profit £557,750 is above £50,270
-Lower Band = (£50,270 - £12,570) × 9% = £3,393.00
+Lower Band = (£50,270 - £12,570) × 6% = £2,262.00
 Upper Band = (£557,750 - £50,270) × 2% = £507,480 × 2% = £10,149.60
-Class 4 NI = £3,393.00 + £10,149.60 = £13,542.60
+Class 4 NI = £2,262.00 + £10,149.60 = £12,411.60
 ```
 
 ### Step 6: Total Tax
 ```
-Total Tax = £232,162.50 + £182.00 + £13,542.60 = £245,887.10
+Total Tax = £232,162.50 + £0 + £12,411.60 = £244,574.10
 ```
 
 ### Additional Metrics
 ```
-Monthly Savings Needed = £245,887.10 ÷ 12 = £20,490.59
-Effective Tax Rate = (£245,887.10 ÷ £600,000) × 100 = 40.98%
+Monthly Savings Needed = £244,574.10 ÷ 12 = £20,381.18
+Effective Tax Rate = (£244,574.10 ÷ £600,000) × 100 = 40.76%
 Tax Saved by Tracking = (£40,000 + £2,250) × 45% = £19,012.50
 ```
 
@@ -218,6 +221,8 @@ At the 45% tax band, every £1,000 in tracked expenses saves:
 - **£450** in Income Tax (45% additional rate)
 - **£20** in Class 4 NI (2% upper band)
 - **Total: £470 saved per £1,000 tracked** 💰
+
+Note: For profits between £12,570 - £50,270, savings are £260/£1k (20% + 6%)
 
 ---
 
@@ -253,8 +258,8 @@ This suggests your actual taxable profit (after expenses and mileage deductions)
 
 Every £1,000 in tracked expenses saves you approximately:
 - **£200** in Income Tax (20% basic rate)
-- **£90** in Class 4 NI (9%)
-- **Total: £290 saved**
+- **£60** in Class 4 NI (6%)
+- **Total: £260 saved**
 
 **Keep tracking your expenses!** 📊
 

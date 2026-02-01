@@ -52,14 +52,8 @@ def calculate_uk_tax_liability(income: float, expenses: float, mileage_miles: fl
         income_tax = basic + higher + additional
     
     # National Insurance calculation (Self-Employed 2025/26)
-    class_2_weekly = 3.50
-    weeks_per_year = 52
-    class_2_threshold = 12570
-    
-    if taxable_profit >= class_2_threshold:
-        class_2_ni = class_2_weekly * weeks_per_year  # £182
-    else:
-        class_2_ni = 0
+    # Class 2: Automatically credited if profit >= £6,845 (no actual payment)
+    class_2_ni = 0  # No longer charged - automatically credited
     
     # Class 4 NI
     lower_limit = 12570
@@ -68,11 +62,11 @@ def calculate_uk_tax_liability(income: float, expenses: float, mileage_miles: fl
     if taxable_profit <= lower_limit:
         class_4_ni = 0
     elif taxable_profit <= upper_limit:
-        # 9% on profits between £12,570 - £50,270
-        class_4_ni = (taxable_profit - lower_limit) * 0.09
+        # 6% on profits between £12,570 - £50,270
+        class_4_ni = (taxable_profit - lower_limit) * 0.06
     else:
-        # 9% up to upper limit, then 2% above
-        class_4_ni = (upper_limit - lower_limit) * 0.09
+        # 6% up to upper limit, then 2% above
+        class_4_ni = (upper_limit - lower_limit) * 0.06
         class_4_ni += (taxable_profit - upper_limit) * 0.02
     
     total_tax = income_tax + class_2_ni + class_4_ni
