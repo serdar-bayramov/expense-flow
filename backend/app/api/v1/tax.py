@@ -98,19 +98,22 @@ async def calculate_tax(
     """
     Calculate tax liability for current user
     """
-    # Get total expenses from receipts
+    # Get total expenses from receipts (business only, not deleted)
     from app.models.receipt import Receipt
     from sqlalchemy import func
     
     total_expenses = db.query(func.coalesce(func.sum(Receipt.total_amount), 0)).filter(
-        Receipt.user_id == current_user.id
+        Receipt.user_id == current_user.id,
+        Receipt.deleted_at.is_(None),
+        Receipt.is_business == 1
     ).scalar()
     
-    # Get total mileage
+    # Get total mileage (not deleted)
     from app.models.mileage_claim import MileageClaim
     
     total_miles = db.query(func.coalesce(func.sum(MileageClaim.distance_miles), 0)).filter(
-        MileageClaim.user_id == current_user.id
+        MileageClaim.user_id == current_user.id,
+        MileageClaim.deleted_at.is_(None)
     ).scalar()
     
     # Calculate tax
