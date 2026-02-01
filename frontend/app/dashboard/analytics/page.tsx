@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UpgradePlanDialog } from '@/components/upgrade-plan-dialog';
+import { TaxCalculator } from '@/components/tax-calculator';
 
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string;
 
@@ -550,6 +551,9 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tax Calculator */}
+      <TaxCalculator />
 
       {/* Monthly Trend - Bar Chart */}
       {barChartData.length > 0 && (

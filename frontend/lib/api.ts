@@ -531,4 +531,76 @@ export const journeyTemplatesAPI = {
   },
 };
 
+// Tax Calculator Types
+export interface TaxCalculationRequest {
+  income: number;
+}
+
+export interface TaxCalculationResult {
+  income: number;
+  expenses: number;
+  mileage_miles: number;
+  mileage_allowance: number;
+  total_deductions: number;
+  taxable_profit: number;
+  income_tax: number;
+  class_2_ni: number;
+  class_4_ni: number;
+  total_ni: number;
+  total_tax: number;
+  monthly_savings_needed: number;
+  effective_tax_rate: number;
+  deductions_saved_tax: number;
+}
+
+// Tax API calls
+export const taxAPI = {
+  // Calculate tax liability
+  calculate: async (token: string, income: number): Promise<TaxCalculationResult> => {
+    const response = await api.post('/api/v1/tax/calculate', 
+      { income },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
+};
+
+// Analytics Types
+export interface AIInsight {
+  insights: string[];
+  context: {
+    total_receipts: number;
+    total_spent: number;
+    total_vat: number;
+    this_month_receipts: number;
+    this_month_spent: number;
+    last_month_receipts: number;
+    last_month_spent: number;
+    month_over_month_change: number;
+    top_categories: [string, number][];
+    total_miles: number;
+    mileage_allowance: number;
+    days_into_tax_year: number;
+    avg_receipt: number;
+    tax_deductions_saved: number;
+  };
+}
+
+// Analytics API calls
+export const analyticsAPI = {
+  // Get AI-powered insights
+  getInsights: async (token: string): Promise<AIInsight> => {
+    const response = await api.get('/api/v1/analytics/insights', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+};
+
 export default api;
