@@ -12,17 +12,13 @@ class TaxCalculationRequest(BaseModel):
     income: float
 
 
-def calculate_uk_tax_liability(income: float, expenses: float, mileage_miles: float):
+def calculate_uk_tax_liability(income: float, expenses: float, mileage_allowance: float, mileage_miles: float = 0):
     """
     Calculate UK tax liability for 2025/26 tax year
     Returns breakdown of Income Tax and National Insurance
     """
     
-    # Mileage allowance (45p first 10k miles, 25p after)
-    if mileage_miles <= 10000:
-        mileage_allowance = mileage_miles * 0.45
-    else:
-        mileage_allowance = (10000 * 0.45) + ((mileage_miles - 10000) * 0.25)
+    # Mileage allowance is now passed directly from database (actual claimed amount)
     
     # Taxable profit
     taxable_profit = max(0, income - expenses - mileage_allowance)
@@ -111,16 +107,23 @@ async def calculate_tax(
     # Get total mileage (not deleted)
     from app.models.mileage_claim import MileageClaim
     
-    total_miles = db.query(func.coalesce(func.sum(MileageClaim.distance_miles), 0)).filter(
+    mileage_data = db.query(
+        func.coalesce(func.sum(MileageClaim.distance_miles), 0).label('total_miles'),
+        func.coalesce(func.sum(MileageClaim.claim_amount), 0).label('total_claims')
+    ).filter(
         MileageClaim.user_id == current_user.id,
         MileageClaim.deleted_at.is_(None)
-    ).scalar()
+    ).first()
+    
+    total_miles = float(mileage_data.total_miles or 0)
+    total_mileage_allowance = float(mileage_data.total_claims or 0)
     
     # Calculate tax
     result = calculate_uk_tax_liability(
         request.income, 
-        float(total_expenses or 0), 
-        float(total_miles or 0)
+        float(total_expenses or 0),
+        total_mileage_allowance,
+        total_miles
     )
     
     return result
