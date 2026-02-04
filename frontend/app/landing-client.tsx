@@ -23,7 +23,8 @@ import {
   Sparkles,
   ArrowRight,
   XCircle,
-  CheckCircle2
+  CheckCircle2,
+  Calculator
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -229,6 +230,11 @@ export default function LandingClientPage() {
               icon: Upload,
               title: 'Email Receipt Forwarding',
               description: 'Got a receipt while out? Just forward it to your unique email address. No app needed - perfect for capturing expenses on-the-go.'
+            },
+            {
+              icon: Calculator,
+              title: 'Real-Time UK Tax Calculator',
+              description: 'See exactly how much tax you\'ll save with every expense tracked.'
             },
             {
               icon: Shield,
