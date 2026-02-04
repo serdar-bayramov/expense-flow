@@ -41,9 +41,6 @@ export default function DashboardLayout({
 
   // Check authentication and fetch user data
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 3;
-    
     const fetchUser = async () => {
       if (!isLoaded) return;
       
@@ -76,24 +73,10 @@ export default function DashboardLayout({
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        
-        // If user doesn't exist in backend yet (new signup), retry after delay
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`Retrying user fetch (${retryCount}/${maxRetries})...`);
-          setTimeout(fetchUser, 1500 * retryCount); // 1.5s, 3s, 4.5s
-          // Show loading state with Clerk email while retrying
-          if (clerkUser?.primaryEmailAddress?.emailAddress) {
-            setUserEmail(clerkUser.primaryEmailAddress.emailAddress);
-          }
-          return;
-        }
-        
-        // After retries exhausted, use Clerk user data as fallback
+        // Use Clerk user data as fallback
         if (clerkUser?.primaryEmailAddress?.emailAddress) {
           setUserEmail(clerkUser.primaryEmailAddress.emailAddress);
           setUserPlan('free');
-          console.log('Using Clerk user data as fallback');
         }
       }
     };
