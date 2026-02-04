@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -27,6 +27,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Wait for Clerk to fully load before fetching
+      if (!isLoaded) return;
+      if (!isSignedIn) {
+        router.push('/login');
+        return;
+      }
+
       try {
         setLoading(true);
         const token = await getToken();
@@ -74,7 +81,7 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, [getToken, router]);
+  }, [isLoaded, isSignedIn, getToken, router]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
