@@ -10,7 +10,14 @@ class ReceiptBase(BaseModel):
     """
     vendor: Optional[str] = None
     date: Optional[datetime] = None
-    total_amount: Optional[float] = None
+    
+    # Currency fields
+    currency: Optional[str] = "GBP"  # ISO 4217 code
+    original_amount: Optional[float] = None  # Amount in original currency
+    exchange_rate: Optional[float] = None  # Conversion rate to GBP
+    exchange_rate_date: Optional[datetime] = None  # When rate was fetched
+    
+    total_amount: Optional[float] = None  # Always in GBP
     tax_amount: Optional[float] = None
     items: Optional[str] = None
     category: Optional[ExpenseCategory] = None
@@ -58,7 +65,10 @@ class ReceiptResponse(ReceiptBase):
             "user_id": 1,
             "image_url": "https://...",
             "vendor": "Amazon",
-            "total_amount": 49.99,
+            "currency": "EUR",
+            "original_amount": 50.00,
+            "exchange_rate": 0.85,
+            "total_amount": 42.50,
             "status": "completed",
             "duplicate_suspect": 0,
             "duplicate_of_id": null,

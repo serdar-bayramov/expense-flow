@@ -417,6 +417,10 @@ def update_receipt(
     old_values = {
         "vendor": receipt.vendor,
         "date": receipt.date,
+        "currency": receipt.currency,
+        "original_amount": receipt.original_amount,
+        "exchange_rate": receipt.exchange_rate,
+        "exchange_rate_date": receipt.exchange_rate_date,
         "total_amount": receipt.total_amount,
         "tax_amount": receipt.tax_amount,
         "category": receipt.category.value if receipt.category else None,

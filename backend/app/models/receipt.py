@@ -35,7 +35,14 @@ class Receipt(Base):
     # Extracted data from OCR
     vendor = Column(String, nullable=True)
     date = Column(DateTime(timezone=True), nullable=True)
-    total_amount = Column(Float, nullable=True)
+    
+    # Currency handling
+    currency = Column(String(3), default="GBP", nullable=False)  # ISO 4217 code (GBP, EUR, USD, etc.)
+    original_amount = Column(Float, nullable=True)  # Amount in original currency
+    exchange_rate = Column(Float, nullable=True)  # Exchange rate used (to GBP)
+    exchange_rate_date = Column(DateTime(timezone=True), nullable=True)  # When rate was fetched
+    
+    total_amount = Column(Float, nullable=True)  # Always in GBP for analytics/tax
     tax_amount = Column(Float, nullable=True)
     items = Column(Text, nullable=True)  # JSON string or text list
     

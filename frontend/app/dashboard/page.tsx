@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car } from 'lucide-react';
 import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
+import { formatReceiptAmount, formatReceiptAmountShort } from '@/lib/currency';
 import { useAuth } from '@clerk/nextjs';
 import { useToast } from '@/hooks/use-toast';
 
@@ -328,8 +329,13 @@ export default function DashboardPage() {
                   {/* Amount */}
                   <div className="text-right shrink-0">
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
+                      {receipt.total_amount ? formatReceiptAmountShort(receipt.total_amount, receipt.currency || 'GBP') : 'N/A'}
                     </div>
+                    {receipt.currency && receipt.currency !== 'GBP' && receipt.original_amount && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {receipt.original_amount.toFixed(2)} {receipt.currency}
+                      </div>
+                    )}
                     {receipt.tax_amount && (
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         VAT: £{receipt.tax_amount.toFixed(2)}

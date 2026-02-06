@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download, ChevronDown } from 'lucide-react';
 import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory, API_URL } from '@/lib/api';
+import { formatReceiptAmount, getCurrencySymbol } from '@/lib/currency';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -809,9 +810,16 @@ export default function ReceiptsPage() {
 
                     <div className="flex items-center justify-between pt-2 border-t dark:border-gray-700">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">
-                        {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          {receipt.total_amount ? `£${receipt.total_amount.toFixed(2)}` : 'N/A'}
+                        </span>
+                        {receipt.currency && receipt.currency !== 'GBP' && receipt.original_amount && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            ({receipt.original_amount.toFixed(2)} {receipt.currency})
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {receipt.tax_amount && (

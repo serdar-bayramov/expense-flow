@@ -239,7 +239,7 @@ def parse_receipt_with_ai(raw_text: str) -> dict:
     
     try:
         # Prompt for GPT to parse the receipt
-        system_prompt = """You are a receipt parser specialized in UK receipts. Extract structured data from receipt text and categorize expenses according to HMRC allowable expense categories.
+        system_prompt = """You are a receipt parser specialized in international receipts. Extract structured data from receipt text and categorize expenses according to HMRC allowable expense categories.
         
 HMRC Expense Categories:
 - Office Costs: Stationery, phone bills, internet, software
@@ -256,12 +256,26 @@ HMRC Expense Categories:
 Rules:
 - Extract vendor name (business name)
 - Extract date in YYYY-MM-DD format
-- Extract total amount as a number (no £ or $ symbol)
+- Extract currency code (ISO 4217: GBP, EUR, USD, CAD, AUD, etc.)
+- Look for currency symbols: £ (GBP), € (EUR), $ (USD/CAD/AUD), ¥ (JPY/CNY), ₹ (INR)
+- If currency unclear, consider vendor location or default to GBP for UK receipts
+- Extract total amount as a number (no currency symbol)
 - Extract VAT/tax amount if present (look for "VAT", "Tax", "GST")
 - Extract individual items with names and prices
 - Auto-categorize based on vendor and items (use category names exactly as listed above)
 - If you can't find something, use null
 - For UK receipts, VAT is typically 20% and shown separately
+
+Common currencies:
+- GBP (£): UK Pound
+- EUR (€): Euro
+- USD ($): US Dollar
+- CAD ($): Canadian Dollar
+- AUD ($): Australian Dollar
+- CHF: Swiss Franc
+- JPY (¥): Japanese Yen
+- CNY (¥): Chinese Yuan
+- INR (₹): Indian Rupee
 
 Return valid JSON only, no explanation."""
 
@@ -273,6 +287,7 @@ Required JSON format:
 {{
     "vendor": "string or null",
     "date": "YYYY-MM-DD or null",
+    "currency": "ISO 4217 code (GBP, EUR, USD, etc.) or null",
     "total_amount": number or null,
     "tax_amount": number or null,
     "category": "HMRC category name or null",
@@ -281,8 +296,9 @@ Required JSON format:
     ]
 }}
 
-Note: Look for VAT amount on UK receipts - it's usually labeled as "VAT" or "Tax". 
-Categorize based on vendor and items purchased using the HMRC categories provided."""
+Note: Detect currency from symbols (£, €, $, ¥, ₹) or context. 
+Look for VAT amount on receipts - usually labeled as "VAT" or "Tax". 
+Categorize based on vendor and items using HMRC categories provided."""
 
         # Call OpenAI API
         response = openai_client.chat.completions.create(
@@ -298,6 +314,30 @@ Categorize based on vendor and items purchased using the HMRC categories provide
         # Parse the JSON response
         parsed_data = json.loads(response.choices[0].message.content)
         
+        # Handle currency conversion
+        from app.services.exchange_rate import convert_to_gbp
+        
+        currency = parsed_data.get('currency', 'GBP')
+        total_amount = parsed_data.get('total_amount')
+        
+        if currency and total_amount and currency != 'GBP':
+            # Convert foreign currency to GBP
+            conversion = convert_to_gbp(total_amount, currency)
+            
+            # Store original amount and conversion details
+            parsed_data['original_amount'] = total_amount
+            parsed_data['total_amount'] = conversion['gbp_amount']
+            parsed_data['exchange_rate'] = conversion['exchange_rate']
+            parsed_data['exchange_rate_date'] = conversion['rate_date']
+            
+            print(f"[Currency Conversion] {total_amount} {currency} → £{conversion['gbp_amount']} GBP (rate: {conversion['exchange_rate']})")
+        elif currency == 'GBP' or not currency:
+            # Already in GBP or no currency detected
+            parsed_data['currency'] = 'GBP'
+            parsed_data['original_amount'] = total_amount
+            parsed_data['exchange_rate'] = 1.0
+            parsed_data['exchange_rate_date'] = None
+        
         return parsed_data
         
     except Exception as e:
@@ -306,8 +346,12 @@ Categorize based on vendor and items purchased using the HMRC categories provide
         return {
             "vendor": None,
             "date": None,
+            "currency": "GBP",
+            "original_amount": None,
             "total_amount": None,
             "tax_amount": None,
+            "exchange_rate": 1.0,
+            "exchange_rate_date": None,
             "category": None,
             "items": []
         }
@@ -384,6 +428,23 @@ def process_receipt_ocr(receipt_id: int, db: Session) -> Receipt:
         if parsed_data.get("total_amount") is not None:
             receipt.total_amount = float(parsed_data["total_amount"])
             extracted_fields["total_amount"] = parsed_data["total_amount"]
+        
+        # Handle currency fields
+        if parsed_data.get("currency"):
+            receipt.currency = parsed_data["currency"]
+            extracted_fields["currency"] = parsed_data["currency"]
+        
+        if parsed_data.get("original_amount") is not None:
+            receipt.original_amount = float(parsed_data["original_amount"])
+            extracted_fields["original_amount"] = parsed_data["original_amount"]
+        
+        if parsed_data.get("exchange_rate") is not None:
+            receipt.exchange_rate = float(parsed_data["exchange_rate"])
+            extracted_fields["exchange_rate"] = parsed_data["exchange_rate"]
+        
+        if parsed_data.get("exchange_rate_date"):
+            receipt.exchange_rate_date = parsed_data["exchange_rate_date"]
+            extracted_fields["exchange_rate_date"] = str(parsed_data["exchange_rate_date"])
         
         if parsed_data.get("tax_amount") is not None:
             receipt.tax_amount = float(parsed_data["tax_amount"])

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim, authAPI } from '@/lib/api';
+import { receiptsAPI, mileageAPI, AnalyticsResponse, MileageClaim, authAPI, Receipt } from '@/lib/api';
+import { formatCurrency, SUPPORTED_CURRENCIES } from '@/lib/currency';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, PieChartIcon, Calendar, FileText, Car, Download, Lock } from 'lucide-react';
 import { format, subDays, startOfYear, getYear, parseISO } from 'date-fns';
@@ -21,6 +22,7 @@ export default function AnalyticsPage() {
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [mileageClaims, setMileageClaims] = useState<MileageClaim[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [userPlan, setUserPlan] = useState<'free' | 'professional' | 'pro_plus'>('free');
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
@@ -74,6 +76,25 @@ export default function AnalyticsPage() {
       // Fetch receipts analytics (required)
       const receiptAnalytics = await receiptsAPI.getAnalytics(token, startDate, endDate);
       setAnalytics(receiptAnalytics);
+
+      // Fetch individual receipts for currency breakdown
+      try {
+        const allReceipts = await receiptsAPI.getAll(token);
+        // Filter receipts by date if needed
+        let filteredReceipts = allReceipts.filter(r => r.status === 'completed' && !r.deleted_at);
+        
+        if (startDate) {
+          filteredReceipts = filteredReceipts.filter(r => r.date && r.date >= startDate);
+        }
+        if (endDate) {
+          filteredReceipts = filteredReceipts.filter(r => r.date && r.date <= endDate);
+        }
+        
+        setReceipts(filteredReceipts);
+      } catch (error) {
+        console.warn('Failed to fetch receipts:', error);
+        setReceipts([]);
+      }
 
       // Fetch mileage claims (optional - don't fail if not available)
       try {
@@ -182,6 +203,17 @@ export default function AnalyticsPage() {
     csv += `Business Miles,${totalMiles.toFixed(1)}\n`;
     csv += '\n';
 
+    // Currency Breakdown
+    if (hasForeignCurrency) {
+      csv += 'MULTI-CURRENCY RECEIPTS\n';
+      csv += 'Currency,Receipt Count,Original Amount,GBP Equivalent\n';
+      currencyBreakdown.forEach(({ currency, count, originalTotal, gbpTotal }) => {
+        csv += `${currency},${count},${formatCurrency(originalTotal, currency)},£${gbpTotal.toFixed(2)}\n`;
+      });
+      csv += 'Note: All amounts converted to GBP for HMRC reporting using exchange rates at transaction time\n';
+      csv += '\n';
+    }
+
     // Expenses by Category
     csv += 'EXPENSES BY HMRC CATEGORY\n';
     csv += 'Category,Amount,Percentage,Count\n';
@@ -264,6 +296,30 @@ export default function AnalyticsPage() {
   const currentTaxYear = new Date().getMonth() >= 3 && new Date().getDate() >= 6
     ? currentYear
     : currentYear - 1;
+
+  // Calculate currency breakdown
+  const getCurrencyBreakdown = () => {
+    const currencyMap = new Map<string, { count: number; originalTotal: number; gbpTotal: number }>();
+    
+    receipts.forEach(receipt => {
+      const currency = receipt.currency || 'GBP';
+      const existing = currencyMap.get(currency) || { count: 0, originalTotal: 0, gbpTotal: 0 };
+      
+      existing.count += 1;
+      existing.originalTotal += receipt.original_amount || receipt.total_amount || 0;
+      existing.gbpTotal += receipt.total_amount || 0;
+      
+      currencyMap.set(currency, existing);
+    });
+    
+    return Array.from(currencyMap.entries()).map(([currency, data]) => ({
+      currency,
+      ...data
+    })).sort((a, b) => b.gbpTotal - a.gbpTotal);
+  };
+
+  const currencyBreakdown = getCurrencyBreakdown();
+  const hasForeignCurrency = currencyBreakdown.some(c => c.currency !== 'GBP');
 
   if (loading) {
     return (
@@ -473,6 +529,53 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Currency Breakdown */}
+      {hasForeignCurrency && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium dark:text-gray-300">Multi-Currency Receipts</CardTitle>
+            <CardDescription className="dark:text-gray-400">
+              All amounts converted to GBP for HMRC reporting
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {currencyBreakdown.map(({ currency, count, originalTotal, gbpTotal }) => {
+                const currencyInfo = SUPPORTED_CURRENCIES.find(c => c.code === currency);
+                return (
+                  <div
+                    key={currency}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <span className="text-lg" title={currencyInfo?.name || currency}>
+                      {currencyInfo?.flag || '💱'}
+                    </span>
+                    <div className="flex flex-col">
+                      <div className="text-sm font-medium dark:text-white">
+                        {currency}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {count} receipt{count !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end ml-3">
+                      <div className="text-sm font-semibold dark:text-white">
+                        {formatCurrency(originalTotal, currency)}
+                      </div>
+                      {currency !== 'GBP' && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          = £{gbpTotal.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

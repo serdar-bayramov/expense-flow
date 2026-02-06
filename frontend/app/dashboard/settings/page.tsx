@@ -109,10 +109,10 @@ export default function SettingsPage() {
     fetchUser();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem('token');
+  //   router.push('/login');
+  // };
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {

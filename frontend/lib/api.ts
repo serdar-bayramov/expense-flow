@@ -122,7 +122,14 @@ export interface Receipt {
   image_url: string;
   vendor: string | null;
   date: string | null;
-  total_amount: number | null;
+  
+  // Currency fields
+  currency: string;  // ISO 4217 code (GBP, EUR, USD, etc.)
+  original_amount: number | null;  // Amount in original currency
+  exchange_rate: number | null;  // Conversion rate to GBP
+  exchange_rate_date: string | null;  // When rate was fetched
+  
+  total_amount: number | null;  // Always in GBP
   tax_amount: number | null;
   items: string | null;
   category: ExpenseCategory | null;
@@ -141,6 +148,10 @@ export interface Receipt {
 export interface ReceiptUpdate {
   vendor?: string;
   date?: string;
+  currency?: string;
+  original_amount?: number;
+  exchange_rate?: number;
+  exchange_rate_date?: string;
   total_amount?: number;
   tax_amount?: number;
   items?: string;
