@@ -213,6 +213,41 @@ class SubscriptionService:
             logger.info(f"📝 Subscription {subscription_id} updated for user {user.id}: status={subscription['status']}, cancel_at_period_end={cancel_at_period_end}")
     
     @staticmethod
+    async def handle_payment_failed(invoice: dict, db: Session):
+        """Handle invoice.payment_failed webhook - Immediate downgrade to free"""
+        customer_id = invoice.get('customer')
+        subscription_id = invoice.get('subscription')
+        
+        if not customer_id:
+            logger.error("No customer_id in payment failed invoice")
+            return
+        
+        # Find user by stripe_customer_id
+        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+        if not user:
+            logger.error(f"User not found for customer: {customer_id}")
+            return
+        
+        # Skip if already on free plan
+        if user.subscription_plan == 'free':
+            logger.info(f"User {user.id} ({user.email}) already on free plan")
+            return
+        
+        old_plan = user.subscription_plan
+        
+        # Immediate downgrade to free
+        user.subscription_plan = 'free'
+        user.subscription_status = 'payment_failed'
+        user.stripe_subscription_id = None
+        user.subscription_cancel_at_period_end = False
+        user.subscription_current_period_end = None
+        
+        db.commit()
+        logger.warning(f"⚠️ PAYMENT FAILED: Immediately downgraded user {user.id} ({user.email}) from {old_plan} to free. Invoice: {invoice.get('id')}")
+        
+        # TODO: Send email notification to user about payment failure and downgrade
+    
+    @staticmethod
     async def handle_subscription_deleted(subscription: dict, db: Session):
         """Handle subscription.deleted webhook"""
         subscription_id = subscription['id']

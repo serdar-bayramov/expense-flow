@@ -60,6 +60,56 @@
 - Card: `4000 0000 0000 0069`
 - **Expected:** Payment fails, clear error message
 
+#### D. Payment Failure on Recurring Billing (STRICT MODE)
+**Testing automatic downgrade when subscription renewal fails:**
+
+**Test Card:** `4000 0000 0000 0341` (always fails)
+
+**Setup:**
+1. Create subscription using success card `4242 4242 4242 4242`
+2. User now on Professional/Pro Plus plan
+3. In Stripe Dashboard → Customers → Find customer → Payment methods
+4. Replace card with failing card `4000 0000 0000 0341`
+5. In Stripe Dashboard → Subscriptions → Find subscription → Actions → "Update subscription" → Set next billing to today (or use Stripe CLI)
+
+**Using Stripe CLI (recommended):**
+```bash
+# Trigger payment failure webhook directly
+stripe trigger invoice.payment_failed
+```
+
+**Expected Results:**
+- ✅ Webhook `invoice.payment_failed` received
+- ✅ Railway logs show: `⚠️ PAYMENT FAILED: Immediately downgraded user X from professional to free`
+- ✅ Database updated:
+  - `subscription_plan = 'free'`
+  - `subscription_status = 'payment_failed'`
+  - `stripe_subscription_id = NULL`
+  - `subscription_current_period_end = NULL`
+- ✅ User loses access to paid features immediately
+- ✅ Dashboard shows Free plan limits (50 receipts, 20 mileage)
+- ✅ Settings page shows Free plan badge
+
+**Verify Immediate Downgrade:**
+```sql
+SELECT 
+  id, email, subscription_plan, subscription_status,
+  stripe_subscription_id, subscription_current_period_end
+FROM users 
+WHERE email = 'test-payment-failure@example.com';
+```
+
+**Code Locations:**
+- Handler: `backend/app/services/subscription_service.py` → `handle_payment_failed()`
+- Webhook: `backend/app/api/v1/webhooks.py` → `invoice.payment_failed` event
+
+**Why Immediate Downgrade?**
+- ✅ Protects revenue (no free access after payment fails)
+- ✅ Clear expectations (payment required for features)
+- ✅ Prevents abuse
+
+**TODO:** Email notification to user about payment failure (currently just logs)
+
 ---
 
 ### 3. **3D Secure Authentication**

@@ -23,8 +23,17 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PROFESSIONAL_PRICE_ID: str = ""  # Will be set after Stripe product creation
     STRIPE_PRO_PLUS_PRICE_ID: str = ""      # Will be set after Stripe product creation
+    STRIPE_LIVE_SECRET_KEY: str = ""
+    STRIPE_LIVE_PUBLISHABLE_KEY: str = ""
+    STRIPE_LIVE_PRO_PLUS_PRICE_ID: str = ""
+    STRIPE_LIVE_WEBHOOK_SECRET: str = ""
+    STRIPE_LIVE_PROFESSIONAL_PRICE_ID: str = ""
+    STRIPE_LIVE_PRO_PLUS_PRICE_ID: str= ""
+
+    
     FRONTEND_URL: str = "http://localhost:3000"  # For Stripe redirects
     
+
     class Config:
         env_file = ".env"
 

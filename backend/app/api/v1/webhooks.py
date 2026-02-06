@@ -185,6 +185,8 @@ async def stripe_webhook(
         
         elif event_type == 'invoice.payment_failed':
             logger.warning(f"Payment failed: {data['id']}")
+            # Immediate downgrade to free on payment failure
+            await SubscriptionService.handle_payment_failed(data, db)
         
         else:
             logger.info(f"Unhandled event type: {event_type}")
