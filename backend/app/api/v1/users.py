@@ -25,7 +25,6 @@ class SubscriptionUsageResponse(BaseModel):
     receipts_limit: int
     mileage_used: int
     mileage_limit: int
-    is_beta_tester: bool
     features: dict  # All feature flags for the plan
     subscription_cancel_at_period_end: bool = False
     subscription_current_period_end: Optional[str] = None
@@ -80,7 +79,6 @@ def get_subscription_usage(
         "receipts_limit": limits["receipts"],
         "mileage_used": mileage_used,
         "mileage_limit": limits["mileage_claims"],
-        "is_beta_tester": current_user.is_beta_tester or False,
         "subscription_cancel_at_period_end": current_user.subscription_cancel_at_period_end or False,
         "subscription_current_period_end": current_user.subscription_current_period_end.isoformat() if current_user.subscription_current_period_end else None,
         "features": {

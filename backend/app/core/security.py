@@ -1,3 +1,19 @@
+"""
+⚠️ LEGACY SECURITY UTILITIES - NOT ACTIVELY USED
+
+This file contains JWT and password hashing utilities from the old auth system.
+Kept for reference but NO LONGER PRIMARY AUTH METHOD.
+
+🔄 CURRENT AUTH: Clerk handles all authentication
+   - Clerk manages password hashing and JWT tokens
+   - Backend only validates Clerk's JWT tokens (see app/api/deps.py)
+
+📝 May be needed for:
+   - Migrating old users to Clerk
+   - Emergency fallback (if approved)
+   - Reference for understanding old system
+"""
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWSError, jwt

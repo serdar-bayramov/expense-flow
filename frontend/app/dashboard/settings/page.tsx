@@ -29,7 +29,6 @@ interface SubscriptionUsage {
   receipts_limit: number;
   mileage_used: number;
   mileage_limit: number;
-  is_beta_tester: boolean;
   subscription_cancel_at_period_end: boolean;
   subscription_current_period_end: string | null;
   features: {
@@ -290,12 +289,6 @@ export default function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {usage.is_beta_tester && (
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                Beta Tester - Thank you for your support!
-              </Badge>
-            )}
-            
             {usage.subscription_cancel_at_period_end && usage.subscription_current_period_end && (
               <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 rounded-lg mb-4">
                 <div className="flex items-start gap-3">

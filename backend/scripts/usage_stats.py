@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+⚠️  WARNING: This script needs updating after beta tester fields were removed.
+    Some commands (beta-stats, export) will fail due to is_beta_tester references.
+    TODO: Update or remove beta-specific functionality.
+
 Admin Script: Usage Statistics & Analytics
 ==========================================
 
@@ -7,7 +11,6 @@ COMMANDS:
     summary             Show overall platform statistics
     top-users [N]       Show top N users by receipt count (default: 10)
     monthly             Show monthly active users and usage
-    beta-stats          Show beta tester conversion and usage stats
     export CSV_FILE     Export detailed usage report to CSV
 
 USAGE EXAMPLES:
@@ -19,9 +22,6 @@ USAGE EXAMPLES:
     
     # Monthly breakdown
     python scripts/usage_stats.py monthly
-    
-    # Beta tester analysis
-    python scripts/usage_stats.py beta-stats
     
     # Export to CSV for analysis
     python scripts/usage_stats.py export usage_report.csv

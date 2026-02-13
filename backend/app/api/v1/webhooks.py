@@ -124,6 +124,7 @@ async def clerk_webhook(request: Request, db: Session = Depends(get_db)):
         print(f"Clerk webhook error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
 
+
 @router.post("/stripe")
 async def stripe_webhook(
     request: Request,

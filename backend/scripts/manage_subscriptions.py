@@ -6,9 +6,8 @@ Admin Script: Subscription Management
 COMMANDS:
     show EMAIL              Show subscription details and usage for a user
     usage EMAIL             Show current month usage stats (receipts/mileage)
-    upgrade EMAIL PLAN      Upgrade user to a specific plan (pro/enterprise)
+    upgrade EMAIL PLAN      Upgrade user to a specific plan (professional/pro_plus)
     downgrade EMAIL         Downgrade user to free plan
-    grant-trial EMAIL DAYS  Grant trial access for N days
     reset-usage EMAIL       Reset monthly usage counters to 0
     list-plan PLAN          List all users on a specific plan
 
@@ -19,28 +18,23 @@ USAGE EXAMPLES:
     # View current month usage
     python scripts/manage_subscriptions.py usage user@example.com
     
-    # Upgrade to pro plan
-    python scripts/manage_subscriptions.py upgrade user@example.com pro
-    
-    # Grant 30-day trial
-    python scripts/manage_subscriptions.py grant-trial user@example.com 30
+    # Upgrade to professional plan
+    python scripts/manage_subscriptions.py upgrade user@example.com professional
     
     # Reset monthly counters
     python scripts/manage_subscriptions.py reset-usage user@example.com
     
-    # List all pro users
-    python scripts/manage_subscriptions.py list-plan pro
+    # List all professional users
+    python scripts/manage_subscriptions.py list-plan professional
 
 SUBSCRIPTION PLANS:
-    free        - 50 receipts, 20 mileage claims per month (beta)
-    beta        - Same as free + early access features (via is_beta_tester flag)
-    pro         - 200 receipts, unlimited mileage
-    enterprise  - Unlimited everything
+    free            - 50 receipts, 20 mileage claims per month
+    professional    - 200 receipts, unlimited mileage
+    pro_plus        - Unlimited everything
 
 NOTES:
-    - Beta testers keep their flag even if subscription changes
     - Monthly usage resets automatically on the 1st of each month
-    - Trial extensions don't change the subscription_plan field
+    - Stripe handles subscription billing and trials
 """
 
 import sys
@@ -66,19 +60,12 @@ def get_db_session():
 
 
 def get_monthly_limits(user: User):
-    """Calculate monthly limits based on user's subscription and beta status"""
-    # Beta testers get enhanced limits
-    if user.is_beta_tester:
-        return {
-            'receipts': 50,
-            'mileage': 20
-        }
-    
+    """Calculate monthly limits based on user's subscription"""
     # Plan-based limits
     limits = {
-        'free': {'receipts': 10, 'mileage': 10},
-        'pro': {'receipts': 200, 'mileage': 999999},  # "Unlimited"
-        'enterprise': {'receipts': 999999, 'mileage': 999999}
+        'free': {'receipts': 50, 'mileage': 20},
+        'professional': {'receipts': 200, 'mileage': 999999},  # "Unlimited"
+        'pro_plus': {'receipts': 999999, 'mileage': 999999}
     }
     
     return limits.get(user.subscription_plan, limits['free'])
@@ -127,10 +114,6 @@ def show_subscription(email: str):
         print(f"\n📦 PLAN INFORMATION")
         print(f"   Plan:               {user.subscription_plan.upper()}")
         print(f"   Status:             {user.subscription_status}")
-        print(f"   Beta Tester:        {'✅ YES' if user.is_beta_tester else '❌ NO'}")
-        
-        if user.beta_expires_at:
-            print(f"   Beta Expires:       {user.beta_expires_at.strftime('%Y-%m-%d')}")
         
         print(f"\n📊 CURRENT MONTH USAGE (as of {datetime.utcnow().strftime('%Y-%m-%d')})")
         
@@ -192,7 +175,7 @@ def show_usage(email: str):
 
 def upgrade_plan(email: str, plan: str):
     """Upgrade user to a specific plan"""
-    valid_plans = ['pro', 'enterprise']
+    valid_plans = ['professional', 'pro_plus']
     
     if plan.lower() not in valid_plans:
         print(f"❌ Invalid plan: {plan}")
@@ -249,34 +232,11 @@ def downgrade_plan(email: str):
         print(f"   Mileage:            {limits['mileage']}")
 
 
-def grant_trial(email: str, days: int):
-    """Grant trial access for specified days"""
-    with get_db_session() as db:
-        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
-        
-        if not user:
-            print(f"❌ User not found: {email}")
-            return
-        
-        # Enable beta tester with expiration
-        user.is_beta_tester = True
-        user.beta_expires_at = datetime.utcnow() + timedelta(days=days)
-        
-        db.commit()
-        
-        print(f"✅ Trial granted for {email}")
-        print(f"   Duration:           {days} days")
-        print(f"   Expires:            {user.beta_expires_at.strftime('%Y-%m-%d')}")
-        print(f"\n📦 Trial benefits:")
-        print(f"   Receipts:           50 per month")
-        print(f"   Mileage:            20 per month")
-
-
 def reset_usage(email: str):
     """Reset monthly usage counters (doesn't delete data, just for limit bypass)"""
     print(f"\n⚠️  WARNING: This doesn't delete actual receipts/mileage.")
     print(f"It's mainly useful for testing or giving users a fresh start.")
-    print(f"Consider using 'grant-trial' instead for temporary limit increases.\n")
+    print(f"Consider upgrading the user's plan instead for permanent limit increases.\n")
     
     confirm = input(f"Reset usage counters for {email}? (type 'yes' to confirm): ")
     
@@ -308,13 +268,12 @@ def list_plan_users(plan: str):
         print(f"\n{'='*80}")
         print(f"👥 USERS ON {plan.upper()} PLAN")
         print(f"{'='*80}")
-        print(f"{'Email':<35} {'Status':<12} {'Beta':<8} {'Created'}")
+        print(f"{'Email':<40} {'Status':<15} {'Created'}")
         print(f"{'='*80}")
         
         for user in users:
-            beta = "✅ YES" if user.is_beta_tester else "❌ NO"
             created = user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A'
-            print(f"{user.email:<35} {user.subscription_status:<12} {beta:<8} {created}")
+            print(f"{user.email:<40} {user.subscription_status:<15} {created}")
         
         print(f"{'='*80}")
         print(f"Total: {len(users)} users")
@@ -358,13 +317,6 @@ def main():
                 print("❌ Error: Email required")
                 sys.exit(1)
             downgrade_plan(sys.argv[2])
-        
-        elif command == "grant-trial":
-            if len(sys.argv) < 4:
-                print("❌ Error: Email and days required")
-                print("Usage: python scripts/manage_subscriptions.py grant-trial EMAIL DAYS")
-                sys.exit(1)
-            grant_trial(sys.argv[2], int(sys.argv[3]))
         
         elif command == "reset-usage":
             if len(sys.argv) < 3:

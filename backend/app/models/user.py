@@ -9,7 +9,6 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     clerk_user_id = Column(String, unique=True, index=True, nullable=True)  # Clerk authentication ID
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=True)  # Nullable for Clerk migration (will be removed later)
     
     # Unique email for forwarding receipts (e.g., sarah-x8k2@receipts.xpense.com)
     unique_receipt_email = Column(String, unique=True, index=True, nullable=False)
@@ -25,10 +24,6 @@ class User(Base):
     subscription_status = Column(String, default="active", nullable=False)  # active, cancelled, expired, past_due
     subscription_current_period_end = Column(DateTime(timezone=True), nullable=True)  # When current billing period ends
     subscription_cancel_at_period_end = Column(Boolean, default=False, nullable=False)  # If subscription is set to cancel
-    
-    # Beta Testing
-    is_beta_tester = Column(Boolean, default=False, nullable=False)
-    beta_expires_at = Column(DateTime(timezone=True), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

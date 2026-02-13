@@ -1,3 +1,18 @@
+"""
+⚠️ LEGACY AUTHENTICATION CODE - NOT ACTIVELY USED
+
+This file contains the old custom JWT authentication system.
+It's kept for reference but is NO LONGER THE PRIMARY AUTH METHOD.
+
+🔄 CURRENT AUTH: We now use Clerk for authentication
+   - Frontend: @clerk/nextjs handles login/signup UI
+   - Backend: app/api/deps.py validates Clerk JWT tokens
+   - Webhooks: app/api/v1/webhooks.py syncs user data
+
+📝 This code may still work but is not maintained.
+   Only remove after confirming no legacy users depend on it.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
