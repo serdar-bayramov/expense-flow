@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as Sonner } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from '@clerk/nextjs'
 
@@ -94,6 +95,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster />
+            <Sonner />
           </ThemeProvider>
         </body>
       </html>

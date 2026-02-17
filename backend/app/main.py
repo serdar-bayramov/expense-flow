@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-from app.api.v1 import auth, users, receipts, mileage, journey_templates, email, webhooks, stripe as stripe_router, tax, analytics
+from starlette.middleware.sessions import SessionMiddleware
+from app.api.v1 import auth, users, receipts, mileage, journey_templates, email, webhooks, stripe as stripe_router, tax, analytics, xero
+from app.core.database import settings
 
 security = HTTPBearer()
 
@@ -27,6 +29,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Session middleware (for OAuth state storage during Xero OAuth flow)
+# The state parameter is stored in session and verified in callback for CSRF protection
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,  # Uses JWT secret key
+    max_age=3600,  # Session expires after 1 hour
+    same_site="lax",  # Protects against CSRF while allowing OAuth callbacks
+    https_only=False,  # Set to True in production with HTTPS
+)
+
 # Include authentication routes
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1") 
@@ -38,6 +50,7 @@ app.include_router(stripe_router.router, prefix="/api/v1/stripe", tags=["Stripe"
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 app.include_router(tax.router, prefix="/api/v1/tax", tags=["Tax"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
+app.include_router(xero.router, prefix="/api/v1", tags=["Xero"])
 
 @app.get("/")
 def read_root():

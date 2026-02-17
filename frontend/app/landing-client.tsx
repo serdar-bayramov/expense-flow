@@ -24,7 +24,8 @@ import {
   ArrowRight,
   XCircle,
   CheckCircle2,
-  Calculator
+  Calculator,
+  RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -106,13 +107,13 @@ export default function LandingClientPage() {
         >
           <Badge className="mb-4">
             <Sparkles className="w-3 h-3 mr-1" />
-            Built to HMRC Guidelines
+            Xero Integration - Built to HMRC Guidelines
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-4xl mx-auto">
-            Email or upload receipts. We'll handle the rest.
+            Email receipts. Auto-sync to Xero. Tax returns sorted.
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Just email or upload your receipts. Our AI extracts the data, categorises for HMRC, and organises everything. Track mileage, view analytics, and export tax-ready reports.
+            Just email or upload your receipts. Our AI extracts the data, categorises for HMRC, and syncs to Xero. Track mileage, view analytics, and export tax-ready reports.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
@@ -182,6 +183,10 @@ export default function LandingClientPage() {
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
+                <span>Sync directly to Xero - no manual data entry</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
                 <span>Automatic duplicate detection - never claim twice</span>
               </li>
               <li className="flex items-start">
@@ -225,6 +230,11 @@ export default function LandingClientPage() {
               icon: Receipt,
               title: 'AI-Powered Receipt Scanning',
               description: 'Upload or email receipts - our advanced OCR extracts merchant, amount, date, and tax in seconds. Process multiple receipts at once.'
+            },
+            {
+              icon: RefreshCw,
+              title: 'Xero Integration',
+              description: 'Automatically sync expenses to Xero. Connect once and let receipts flow directly into your accounting system - saves hours of manual data entry.'
             },
             {
               icon: Upload,
@@ -287,8 +297,8 @@ export default function LandingClientPage() {
             },
             {
               number: 2,
-              title: 'AI Extracts Everything',
-              description: 'Our AI automatically extracts all data and categorises expenses for HMRC. Track mileage with journey templates.'
+              title: 'AI Extracts & Syncs',
+              description: 'Our AI automatically extracts all data and categorises expenses for HMRC. Connect Xero to auto-sync. Track mileage with journey templates.'
             },
             {
               number: 3,
@@ -331,6 +341,10 @@ export default function LandingClientPage() {
             {
               question: 'Can I email multiple receipts at once?',
               answer: 'Yes! Send as many attachments as you want in one email. We\'ll process each receipt separately and add them all to your account. Perfect for end-of-day expense batches.'
+            },
+            {
+              question: 'How does Xero integration work?',
+              answer: 'Connect your Xero account once with secure OAuth. Approved receipts automatically sync as bank transactions with images attached. Saves hours of manual data entry each month.'
             },
             {
               question: 'What file types work with email forwarding?',

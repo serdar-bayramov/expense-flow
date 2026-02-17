@@ -84,6 +84,8 @@ class ReceiptResponse(ReceiptBase):
     duplicate_suspect: int = 0
     duplicate_of_id: Optional[int] = None
     duplicate_dismissed: int = 0
+    xero_transaction_id: Optional[str] = None  # Xero BankTransactionID
+    synced_to_xero_at: Optional[datetime] = None  # When synced to Xero
     created_at: datetime
     updated_at: Optional[datetime] = None
     

@@ -25,6 +25,17 @@ class User(Base):
     subscription_current_period_end = Column(DateTime(timezone=True), nullable=True)  # When current billing period ends
     subscription_cancel_at_period_end = Column(Boolean, default=False, nullable=False)  # If subscription is set to cancel
     
+    # Xero Integration
+    xero_tenant_id = Column(String(255), nullable=True)  # Xero organization ID
+    xero_org_name = Column(String(255), nullable=True)  # Xero organization name (e.g., "Maple Florist Ltd")
+    xero_access_token = Column(String, nullable=True)  # Encrypted OAuth access token
+    xero_refresh_token = Column(String, nullable=True)  # Encrypted OAuth refresh token
+    xero_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # When access token expires
+    xero_connected_at = Column(DateTime(timezone=True), nullable=True)  # When user first connected
+    xero_auto_sync = Column(Boolean, default=False, nullable=False)  # Auto-sync receipts to Xero?
+    xero_bank_account_code = Column(String(255), nullable=True)  # Selected Xero bank account code for syncing
+    xero_oauth_state = Column(String(255), nullable=True)  # Temporary OAuth state for CSRF protection
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

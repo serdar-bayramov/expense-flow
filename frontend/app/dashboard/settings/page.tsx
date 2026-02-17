@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, Crown, Sparkles, Zap, Check, X, TrendingUp, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlanSelector } from '@/components/plan-selector';
+import { XeroConnectionCard } from '@/components/xero-connection-card';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -46,6 +47,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string>('');
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null);
   const [isChangingPlan, setIsChangingPlan] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -58,6 +60,7 @@ export default function SettingsPage() {
     const fetchUser = async () => {
       const token = await getToken();
       if (token) {
+        setToken(token);
         try {
           // Check if user just returned from Stripe portal
           const returnedFromPortal = sessionStorage.getItem('stripe_portal_visited') === 'true';
@@ -461,6 +464,14 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Xero Integration */}
+      {user && token && (
+        <XeroConnectionCard 
+          token={token} 
+          userPlan={user?.subscription_plan || 'free'} 
+        />
+      )}
 
       {/* Danger Zone */}
       <Card className="border-red-200 dark:border-red-900">

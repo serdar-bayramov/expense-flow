@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car } from 'lucide-react';
+import { ReceiptPoundSterling, PoundSterling, TrendingUp, Calendar, Store, AlertCircle, Car, Check } from 'lucide-react';
 import { authAPI, receiptsAPI, Receipt, mileageAPI, MileageStats } from '@/lib/api';
 import { format } from 'date-fns';
 import { formatReceiptAmount, formatReceiptAmountShort } from '@/lib/currency';
@@ -314,9 +314,17 @@ export default function DashboardPage() {
                       <span className="font-medium text-gray-900 dark:text-white truncate">
                         {receipt.vendor || 'Unknown Vendor'}
                       </span>
-                      <Badge className={`ml-auto ${getStatusColor(receipt.status)}`}>
-                        {receipt.status}
-                      </Badge>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Badge className={getStatusColor(receipt.status)}>
+                          {receipt.status}
+                        </Badge>
+                        {receipt.xero_transaction_id && (
+                          <Badge className="bg-green-500 hover:bg-green-500 flex items-center gap-1">
+                            <Check className="h-3 w-3" />
+                            <span>Xero</span>
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     {receipt.date && (
                       <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">

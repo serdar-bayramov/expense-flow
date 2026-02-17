@@ -60,6 +60,10 @@ class Receipt(Base):
     duplicate_of_id = Column(Integer, ForeignKey("receipts.id"), nullable=True)  # Reference to original
     duplicate_dismissed = Column(Integer, default=0)  # 0=not reviewed, 1=user confirmed not duplicate
     
+    # Xero integration
+    xero_transaction_id = Column(String(255), nullable=True)  # Xero BankTransactionID (UUID)
+    synced_to_xero_at = Column(DateTime(timezone=True), nullable=True)  # When synced to Xero
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

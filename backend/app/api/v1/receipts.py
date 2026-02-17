@@ -13,6 +13,7 @@ from app.models.receipt import Receipt, ReceiptStatus, ExpenseCategory
 from app.schemas.receipt import ReceiptCreate, ReceiptUpdate, ReceiptResponse
 from app.services.storage import upload_file_to_gcs, delete_file_from_gcs
 from app.services.ocr import process_receipt_ocr
+from app.services import xero_service
 from app.services.audit import (
     log_receipt_created,
     log_status_change,
@@ -521,6 +522,20 @@ def approve_receipt(
     except Exception as e:
         # Don't fail approval if duplicate check fails
         print(f"Duplicate detection failed for receipt {receipt_id}: {str(e)}")
+    
+    # Auto-sync to Xero if enabled
+    if current_user.xero_auto_sync and current_user.xero_tenant_id:
+        try:
+            print(f"Auto-syncing receipt {receipt_id} to Xero for user {current_user.id}")
+            result = xero_service.sync_receipt_to_xero(db, current_user, receipt)
+            print(f"Xero auto-sync result: {result}")
+        except Exception as e:
+            # Don't fail approval if Xero sync fails
+            print(f"Xero auto-sync failed for receipt {receipt_id}: {str(e)}")
+            print(f"Xero auto-sync result: {result}")
+        except Exception as e:
+            # Don't fail approval if Xero sync fails
+            print(f"Xero auto-sync failed for receipt {receipt_id}: {str(e)}")
     
     return receipt
 

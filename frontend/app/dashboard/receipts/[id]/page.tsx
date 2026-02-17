@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, CheckCircle, Loader2, Pencil, AlertTriangle, FileText, Clock } from 'lucide-react';
-import { receiptsAPI, Receipt, EXPENSE_CATEGORIES, ExpenseCategory } from '@/lib/api';
+import { ArrowLeft, CheckCircle, Loader2, Pencil, AlertTriangle, FileText, Clock, CloudUpload } from 'lucide-react';
+import { receiptsAPI, xeroAPI, Receipt, EXPENSE_CATEGORIES, ExpenseCategory } from '@/lib/api';
 import { SUPPORTED_CURRENCIES, formatExchangeRate } from '@/lib/currency';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -28,6 +28,7 @@ export default function ReceiptDetailPage() {
   const [approving, setApproving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   // Currency conversion preview state
   const [previewGbpAmount, setPreviewGbpAmount] = useState<number | null>(null);
@@ -247,6 +248,27 @@ export default function ReceiptDetailPage() {
       toast.error('Failed to save changes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSyncToXero = async () => {
+    const token = await getToken();
+    if (!token || !receipt) return;
+
+    setSyncing(true);
+    try {
+      await xeroAPI.syncReceipt(token, receipt.id);
+      
+      // Refresh receipt to get updated xero_transaction_id
+      const updated = await receiptsAPI.getById(token, receiptId);
+      setReceipt(updated);
+      
+      toast.success('Receipt synced to Xero successfully!');
+    } catch (error: any) {
+      console.error('Failed to sync to Xero:', error);
+      toast.error(error.response?.data?.detail || 'Failed to sync to Xero. Make sure you\'re connected.');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -580,14 +602,35 @@ export default function ReceiptDetailPage() {
                           </Button>
                         </div>
                       ) : (
-                        <Button
-                          onClick={() => setIsEditing(true)}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit Receipt
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setIsEditing(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit Receipt
+                          </Button>
+                          {!receipt.xero_transaction_id && (
+                            <Button
+                              onClick={handleSyncToXero}
+                              disabled={syncing}
+                              className="flex-1"
+                            >
+                              {syncing ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Syncing...
+                                </>
+                              ) : (
+                                <>
+                                  <CloudUpload className="h-4 w-4 mr-2" />
+                                  Sync to Xero
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       )
                     ) : (
                       <div className="text-sm text-gray-500 dark:text-gray-400 text-center">

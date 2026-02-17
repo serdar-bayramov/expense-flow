@@ -68,6 +68,7 @@ export const PLANS: Plan[] = [
     features: [
       { text: '100 receipts per month', highlight: true },
       { text: '50 mileage claims per month', highlight: true },
+      { text: 'Xero integration - auto-sync expenses', highlight: true },
       { text: 'Upload or email receipts' },
       { text: 'AI-powered OCR scanning' },
       { text: 'Real-time UK tax calculator' },
@@ -96,6 +97,7 @@ export const PLANS: Plan[] = [
     features: [
       { text: '500 receipts per month', highlight: true },
       { text: '200 mileage claims per month', highlight: true },
+      { text: 'Xero integration - auto-sync expenses', highlight: true },
       { text: 'Upload or email receipts' },
       { text: 'AI-powered OCR scanning' },
       { text: 'Real-time UK tax calculator' },

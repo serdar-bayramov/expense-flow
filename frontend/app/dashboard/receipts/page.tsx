@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download, ChevronDown } from 'lucide-react';
-import { receiptsAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory, API_URL } from '@/lib/api';
+import { ReceiptPoundSterling, Calendar, Store, Search, ChevronLeft, ChevronRight, CalendarDays, Trash2, Tag, RotateCcw, Archive, AlertTriangle, Download, ChevronDown, CloudUpload, Check, MoreVertical, ExternalLink, Eye } from 'lucide-react';
+import { receiptsAPI, xeroAPI, Receipt, EXPENSE_CATEGORY_OPTIONS, ExpenseCategory, API_URL } from '@/lib/api';
 import { formatReceiptAmount, getCurrencySymbol } from '@/lib/currency';
 import { format, subDays, startOfYear, isWithinInterval, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -27,10 +27,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type StatusFilter = 'all' | 'pending' | 'completed' | 'failed' | 'deleted';
+type StatusFilter = 'all' | 'pending' | 'completed' | 'failed' | 'deleted' | 'pending_sync';
 type DateFilter = 'all' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | string; // string for tax years
 
 export default function ReceiptsPage() {
@@ -41,9 +42,9 @@ export default function ReceiptsPage() {
   const [deletedReceipts, setDeletedReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [receiptToDelete, setReceiptToDelete] = useState<Receipt | null>(null);
+  const [syncingReceipts, setSyncingReceipts] = useState<Set<number>>(new Set());
   
   // Filter and pagination state
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -110,19 +111,17 @@ export default function ReceiptsPage() {
     fetchReceipts();
   }, []);
 
-  // Set mounted state after first render
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // Apply filters whenever receipts, status, date, or search changes
   useEffect(() => {
     // Use active or deleted receipts based on status filter
     const sourceReceipts = statusFilter === 'deleted' ? deletedReceipts : allReceipts;
     let filtered = [...sourceReceipts];
 
-    // Filter by status (skip if viewing deleted)
-    if (statusFilter !== 'all' && statusFilter !== 'deleted') {
+    // Filter by status (skip if viewing deleted or pending_sync)
+    if (statusFilter === 'pending_sync') {
+      // Filter for completed receipts that haven't been synced to Xero yet
+      filtered = filtered.filter(r => r.status === 'completed' && !r.xero_transaction_id);
+    } else if (statusFilter !== 'all' && statusFilter !== 'deleted') {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
 
@@ -223,6 +222,7 @@ export default function ReceiptsPage() {
   const getStatusCount = (status: StatusFilter) => {
     if (status === 'all') return allReceipts.length;
     if (status === 'deleted') return deletedReceipts.length;
+    if (status === 'pending_sync') return allReceipts.filter(r => r.status === 'completed' && !r.xero_transaction_id).length;
     return allReceipts.filter(r => r.status === status).length;
   };
 
@@ -309,8 +309,52 @@ export default function ReceiptsPage() {
       console.error('Failed to dismiss duplicate:', error);
       toast({
         title: 'Failed to dismiss',
-        description: 'Could not dismiss duplicate warning. Please try again.',
+        description: 'Could not update the receipt. Please try again.',
         variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSyncToXero = async (receipt: Receipt, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    const token = await getToken();
+    if (!token) return;
+
+    // Mark as syncing
+    setSyncingReceipts(prev => new Set(prev).add(receipt.id));
+
+    try {
+      const result = await xeroAPI.syncReceipt(token, receipt.id);
+      
+      if (result.success) {
+        // Update receipt in state with sync info
+        setAllReceipts(prev => prev.map(r => 
+          r.id === receipt.id 
+            ? { ...r, xero_transaction_id: result.xero_transaction_id, synced_to_xero_at: new Date().toISOString() }
+            : r
+        ));
+        
+        toast({
+          title: 'Synced to Xero ✓',
+          description: `${receipt.vendor} has been synced to Xero successfully.`,
+        });
+      } else {
+        throw new Error(result.message || 'Sync failed');
+      }
+    } catch (error: any) {
+      console.error('Failed to sync to Xero:', error);
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'Could not sync receipt to Xero. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      // Remove from syncing set
+      setSyncingReceipts(prev => {
+        const next = new Set(prev);
+        next.delete(receipt.id);
+        return next;
       });
     }
   };
@@ -541,6 +585,7 @@ export default function ReceiptsPage() {
     { label: 'Pending Review', value: 'pending' },
     { label: 'Completed', value: 'completed' },
     { label: 'Failed', value: 'failed' },
+    { label: 'Pending Xero Sync', value: 'pending_sync' },
     { label: 'Deleted', value: 'deleted' },
   ];
 
@@ -555,31 +600,29 @@ export default function ReceiptsPage() {
             Manage and organize all your receipts
           </p>
         </div>
-        {mounted && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Download Receipts
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={downloadCSV}>
-                <Download className="mr-2 h-4 w-4" />
-                Download CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadPDF}>
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadImages}>
-                <Download className="mr-2 h-4 w-4" />
-                Download Images (ZIP)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Download Receipts
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={downloadCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Download CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadPDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadImages}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Images (ZIP)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Search and Filters */}
@@ -760,6 +803,84 @@ export default function ReceiptsPage() {
                 onClick={statusFilter === 'deleted' ? undefined : () => router.push(`/dashboard/receipts/${receipt.id}`)}
               >
                 <CardContent className="pt-6">
+                  {/* 3-dot menu - top left corner */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
+                          title="Actions"
+                        >
+                          <MoreVertical className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {/* View Details */}
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/receipts/${receipt.id}`);
+                        }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        
+                        {/* Sync to Xero - only for completed, unsynced receipts */}
+                        {statusFilter !== 'deleted' && receipt.status === 'completed' && !receipt.xero_transaction_id && (
+                          <DropdownMenuItem 
+                            onClick={(e) => handleSyncToXero(receipt, e)}
+                            disabled={syncingReceipts.has(receipt.id)}
+                          >
+                            <CloudUpload className={`h-4 w-4 mr-2 ${syncingReceipts.has(receipt.id) ? 'animate-pulse' : ''}`} />
+                            {syncingReceipts.has(receipt.id) ? 'Syncing...' : 'Sync to Xero'}
+                          </DropdownMenuItem>
+                        )}
+                        
+                        {/* View in Xero - only for synced receipts */}
+                        {receipt.xero_transaction_id && (
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`https://go.xero.com/Bank/ViewTransaction.aspx?bankTransactionID=${receipt.xero_transaction_id}`, '_blank');
+                          }}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            View in Xero
+                          </DropdownMenuItem>
+                        )}
+                        
+                        <DropdownMenuSeparator />
+                        
+                        {/* Delete or Restore */}
+                        {statusFilter === 'deleted' ? (
+                          <DropdownMenuItem onClick={(e) => handleRestore(receipt, e)}>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Restore
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem 
+                            onClick={(e) => handleDeleteClick(receipt, e)}
+                            className="text-red-600 dark:text-red-400"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Status badges - top right corner */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                    <Badge className={getStatusColor(receipt.status)}>
+                      {receipt.status}
+                    </Badge>
+                    {receipt.xero_transaction_id && (
+                      <Badge className="bg-green-500 hover:bg-green-500 flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        <span>Xero</span>
+                      </Badge>
+                    )}
+                  </div>
+
                   {/* Receipt Image */}
                   <div className="relative h-48 mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
                     <img
@@ -767,29 +888,6 @@ export default function ReceiptsPage() {
                       alt={receipt.vendor || 'Receipt'}
                       className="w-full h-full object-cover"
                     />
-                    <Badge className={`absolute top-2 right-2 ${getStatusColor(receipt.status)}`}>
-                      {receipt.status}
-                    </Badge>
-                    
-                    {/* Show Restore button for deleted receipts, Delete button for active ones */}
-                    {statusFilter === 'deleted' ? (
-                      <button
-                        onClick={(e) => handleRestore(receipt, e)}
-                        className="absolute top-2 left-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-sm font-medium shadow-lg"
-                        title="Restore receipt"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        <span>Restore</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => handleDeleteClick(receipt, e)}
-                        className="absolute top-2 left-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
-                        title="Delete receipt"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
 
                   {/* Receipt Details */}

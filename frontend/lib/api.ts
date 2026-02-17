@@ -140,6 +140,8 @@ export interface Receipt {
   duplicate_suspect: number;
   duplicate_of_id: number | null;
   duplicate_dismissed: number;
+  xero_transaction_id: string | null;  // Xero BankTransactionID
+  synced_to_xero_at: string | null;  // When synced to Xero
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;  // For soft delete
@@ -606,6 +608,108 @@ export const analyticsAPI = {
   // Get AI-powered insights
   getInsights: async (token: string): Promise<AIInsight> => {
     const response = await api.get('/api/v1/analytics/insights', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+};
+
+// Xero Integration API calls
+export interface XeroStatus {
+  connected: boolean;
+  org_name: string | null;
+  tenant_id: string | null;
+  connected_at: string | null;
+  auto_sync: boolean;
+  token_expires_at: string | null;
+}
+
+export interface XeroSyncResult {
+  success: boolean;
+  message: string;
+  xero_transaction_id: string | null;
+  synced_at: string | null;
+  warnings?: string[];
+}
+
+export interface XeroBankAccount {
+  code: string;
+  name: string;
+  account_id: string;
+}
+
+export interface XeroBankAccountsResponse {
+  bank_accounts: XeroBankAccount[];
+  selected_code: string | null;
+}
+
+export const xeroAPI = {
+  // Get Xero connection status
+  getStatus: async (token: string): Promise<XeroStatus> => {
+    const response = await api.get('/api/v1/xero/status', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Start OAuth connection (call API to get authorization URL)
+  // Frontend should call this, then redirect to the returned URL
+  getConnectUrl: async (token: string): Promise<{ authorization_url: string; state: string }> => {
+    const response = await api.get('/api/v1/xero/connect', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Disconnect from Xero
+  disconnect: async (token: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/api/v1/xero/disconnect', {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Toggle auto-sync setting
+  toggleAutoSync: async (token: string, enabled: boolean): Promise<{ success: boolean; auto_sync: boolean; message: string }> => {
+    const response = await api.post(`/api/v1/xero/auto-sync?enabled=${enabled}`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Manually sync a single receipt
+  syncReceipt: async (token: string, receiptId: number): Promise<XeroSyncResult> => {
+    const response = await api.post(`/api/v1/xero/sync/${receiptId}`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Get available bank accounts
+  getBankAccounts: async (token: string): Promise<XeroBankAccountsResponse> => {
+    const response = await api.get('/api/v1/xero/bank-accounts', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Select a bank account for syncing
+  selectBankAccount: async (token: string, bankAccountCode: string): Promise<{ success: boolean; selected_code: string }> => {
+    const response = await api.post(`/api/v1/xero/bank-account?bank_account_code=${bankAccountCode}`, {}, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

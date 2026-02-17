@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     
     FRONTEND_URL: str = "http://localhost:3000"  # For Stripe redirects
     
+    # Xero Integration
+    XERO_CLIENT_ID: str = ""  # From Xero Developer portal
+    XERO_CLIENT_SECRET: str = ""  # From Xero Developer portal
+    XERO_REDIRECT_URI: str = "http://localhost:8000/api/v1/xero/callback"  # OAuth callback (backend endpoint)
+    XERO_ENCRYPTION_KEY: str = ""  # For encrypting OAuth tokens (use Fernet.generate_key())
+    
 
     class Config:
         env_file = ".env"
