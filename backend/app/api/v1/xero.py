@@ -17,7 +17,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, settings
 from app.models.user import User
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.xero_sync_log import XeroSyncLog
@@ -134,26 +134,26 @@ async def xero_callback(
         error_description = request.query_params.get("error_description", "Unknown error")
         # Redirect to frontend with error message
         return RedirectResponse(
-            url=f"http://localhost:3000/dashboard/settings?xero_error={error}&message={error_description}"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error={error}&message={error_description}"
         )
     
     # Verify we got the code
     if not code:
         return RedirectResponse(
-            url="http://localhost:3000/dashboard/settings?xero_error=missing_code&message=No authorization code received"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error=missing_code&message=No authorization code received"
         )
     
     # Verify state parameter exists
     if not state:
         return RedirectResponse(
-            url="http://localhost:3000/dashboard/settings?xero_error=missing_state&message=Security verification failed"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error=missing_state&message=Security verification failed"
         )
     
     # Look up user by state parameter (CSRF protection)
     user = db.query(User).filter(User.xero_oauth_state == state).first()
     if not user:
         return RedirectResponse(
-            url="http://localhost:3000/dashboard/settings?xero_error=invalid_state&message=Security verification failed or session expired"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error=invalid_state&message=Security verification failed or session expired"
         )
     
     try:
@@ -166,7 +166,7 @@ async def xero_callback(
         
         if not connections:
             return RedirectResponse(
-                url="http://localhost:3000/dashboard/settings?xero_error=no_organizations&message=No Xero organizations connected"
+                url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error=no_organizations&message=No Xero organizations connected"
             )
         
         # Use first organization (most users have only one)
@@ -189,14 +189,14 @@ async def xero_callback(
         
         # Redirect to settings page with success message
         return RedirectResponse(
-            url=f"http://localhost:3000/dashboard/settings?xero_success=true&org_name={tenant_name}"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_success=true&org_name={tenant_name}"
         )
         
     except Exception as e:
         # Log error and redirect with error message
         print(f"Xero OAuth callback error for user {user.id}: {e}")
         return RedirectResponse(
-            url=f"http://localhost:3000/dashboard/settings?xero_error=token_exchange&message={str(e)}"
+            url=f"{settings.FRONTEND_URL}/dashboard/settings?xero_error=token_exchange&message={str(e)}"
         )
 
 
