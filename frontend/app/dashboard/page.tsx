@@ -309,12 +309,14 @@ export default function DashboardPage() {
 
                   {/* Receipt Details */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Store className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span className="font-medium text-gray-900 dark:text-white truncate">
-                        {receipt.vendor || 'Unknown Vendor'}
-                      </span>
-                      <div className="ml-auto flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap md:flex-nowrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Store className="h-4 w-4 text-gray-400 shrink-0" />
+                        <span className="font-medium text-gray-900 dark:text-white truncate">
+                          {receipt.vendor || 'Unknown Vendor'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
                         <Badge className={getStatusColor(receipt.status)}>
                           {receipt.status}
                         </Badge>
