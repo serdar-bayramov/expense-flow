@@ -25,11 +25,12 @@ import {
   XCircle,
   CheckCircle2,
   Calculator,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PLANS } from '@/lib/plans';
 import { PricingCard } from '@/components/pricing-card';
 
@@ -38,6 +39,47 @@ export default function LandingClientPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  // Animated Counter Component
+  function AnimatedCounter({ 
+    from = 0, 
+    to, 
+    duration = 2, 
+    suffix = '',
+    prefix = '' 
+  }: { 
+    from?: number; 
+    to: number; 
+    duration?: number; 
+    suffix?: string;
+    prefix?: string;
+  }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const inView = useInView(ref, { once: true });
+    const count = useMotionValue(from);
+    const rounded = useTransform(count, (latest) => Math.round(latest));
+    const [displayValue, setDisplayValue] = useState(from);
+
+    useEffect(() => {
+      if (inView) {
+        const controls = animate(count, to, { duration });
+        return controls.stop;
+      }
+    }, [inView, count, to, duration]);
+
+    useEffect(() => {
+      const unsubscribe = rounded.on('change', (latest) => {
+        setDisplayValue(latest);
+      });
+      return unsubscribe;
+    }, [rounded]);
+
+    return (
+      <div ref={ref} className="text-3xl font-bold text-primary mb-1">
+        {prefix}{displayValue}{suffix}
+      </div>
+    );
+  }
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -98,9 +140,100 @@ export default function LandingClientPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 md:py-32">
+      <section className="relative container mx-auto px-4 py-20 md:py-32 overflow-hidden">
+        {/* Floating Receipt Mockups Background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-50 dark:opacity-10">
+          {/* Receipt 1 - Top Left */}
+          <motion.div
+            className="absolute top-20 -left-10 w-48 h-64 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg shadow-2xl backdrop-blur-sm border border-gray-300/40 dark:border-white/20"
+            animate={{
+              y: [0, -20, 0],
+              rotate: [-5, -8, -5],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <div className="p-4 space-y-2">
+              <div className="h-3 bg-gray-800/30 dark:bg-white/40 rounded w-3/4"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-1/2"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-2/3"></div>
+              <div className="mt-4 h-4 bg-gray-900/35 dark:bg-white/50 rounded w-1/3"></div>
+            </div>
+          </motion.div>
+
+          {/* Receipt 2 - Top Right */}
+          <motion.div
+            className="absolute top-32 -right-10 w-48 h-64 bg-gradient-to-br from-green-500/30 to-blue-500/30 rounded-lg shadow-2xl backdrop-blur-sm border border-gray-300/40 dark:border-white/20"
+            animate={{
+              y: [0, 20, 0],
+              rotate: [5, 8, 5],
+            }}
+            transition={{
+              duration: 7,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1
+            }}
+          >
+            <div className="p-4 space-y-2">
+              <div className="h-3 bg-gray-800/30 dark:bg-white/40 rounded w-3/4"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-1/2"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-2/3"></div>
+              <div className="mt-4 h-4 bg-gray-900/35 dark:bg-white/50 rounded w-1/3"></div>
+            </div>
+          </motion.div>
+
+          {/* Receipt 3 - Bottom Left */}
+          <motion.div
+            className="absolute -bottom-32 left-20 w-48 h-64 bg-gradient-to-br from-orange-500/30 to-red-500/30 rounded-lg shadow-2xl backdrop-blur-sm border border-gray-300/40 dark:border-white/20 hidden md:block"
+            animate={{
+              y: [0, -15, 0],
+              rotate: [3, 6, 3],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          >
+            <div className="p-4 space-y-2">
+              <div className="h-3 bg-gray-800/30 dark:bg-white/40 rounded w-3/4"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-1/2"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-2/3"></div>
+              <div className="mt-4 h-4 bg-gray-900/35 dark:bg-white/50 rounded w-1/3"></div>
+            </div>
+          </motion.div>
+
+          {/* Receipt 4 - Bottom Right */}
+          <motion.div
+            className="absolute -bottom-24 right-32 w-48 h-64 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-lg shadow-2xl backdrop-blur-sm border border-gray-300/40 dark:border-white/20 hidden md:block"
+            animate={{
+              y: [0, 15, 0],
+              rotate: [-3, -6, -3],
+            }}
+            transition={{
+              duration: 7.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+          >
+            <div className="p-4 space-y-2">
+              <div className="h-3 bg-gray-800/30 dark:bg-white/40 rounded w-3/4"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-1/2"></div>
+              <div className="h-2 bg-gray-700/25 dark:bg-white/30 rounded w-2/3"></div>
+              <div className="mt-4 h-4 bg-gray-900/35 dark:bg-white/50 rounded w-1/3"></div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Hero Content */}
         <motion.div
-          className="text-center space-y-8"
+          className="relative z-10 text-center space-y-8"
           initial="initial"
           animate="animate"
           variants={fadeInUp}
@@ -130,90 +263,413 @@ export default function LandingClientPage() {
             No credit card required • Free plan available • Snap and send from your phone
           </p>
         </motion.div>
+
+        {/* Animated Flow Visualization */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mt-20 relative h-48 md:h-64 w-full max-w-6xl mx-auto px-4 overflow-hidden"
+        >
+          <div className="absolute inset-0 scale-[0.6] sm:scale-75 md:scale-90 lg:scale-100 origin-center">
+          {/* Incoming Receipts (Left Side) - Mobile/Tablet */}
+          {[0, 1, 2, 3, 4].map((index) => (
+            <motion.div
+              key={`receipt-sm-${index}`}
+              className="absolute -left-24 sm:-left-16 md:left-0 top-1/2 w-20 h-28 bg-white rounded-sm shadow-lg border border-gray-200 lg:hidden"
+              initial={{ x: -100, y: -40, opacity: 0, rotate: -15 }}
+              animate={{
+                x: [0, 160, 320],
+                y: [-40, -40, -40],
+                opacity: [0, 1, 1, 0],
+                rotate: [-15, -8, 0],
+                scale: [0.8, 1, 0.85]
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                delay: index * 1,
+                ease: "easeInOut"
+              }}
+              style={{ transformOrigin: 'center' }}
+            >
+              <div className="p-2 space-y-0.5 text-[5px] leading-tight">
+                {/* Receipt Header */}
+                <div className="text-center font-bold border-b border-gray-300 pb-0.5 mb-1">
+                  <div className="h-1.5 bg-gray-800 rounded w-2/3 mx-auto mb-0.5"></div>
+                  <div className="h-0.5 bg-gray-500 rounded w-1/2 mx-auto"></div>
+                </div>
+                
+                {/* Receipt Items */}
+                <div className="space-y-0.5">
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-700 rounded w-2/3"></div>
+                    <div className="h-1 bg-gray-700 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-1/2"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-3/5"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-1/2"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                </div>
+                
+                {/* Total */}
+                <div className="border-t border-gray-300 pt-0.5 mt-1">
+                  <div className="flex justify-between items-center">
+                    <div className="h-1.5 bg-gray-900 rounded w-1/3"></div>
+                    <div className="h-1.5 bg-gray-900 rounded w-1/4"></div>
+                  </div>
+                </div>
+                
+                {/* Footer text */}
+                <div className="mt-1 space-y-0.5">
+                  <div className="h-0.5 bg-gray-400 rounded w-3/4 mx-auto"></div>
+                  <div className="h-0.5 bg-gray-400 rounded w-2/3 mx-auto"></div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+
+          {/* Incoming Receipts (Left Side) - Large Screen */}
+          {[0, 1, 2, 3, 4].map((index) => (
+            <motion.div
+              key={`receipt-lg-${index}`}
+              className="absolute left-0 top-1/2 w-20 h-28 bg-white rounded-sm shadow-lg border border-gray-200 hidden lg:block"
+              initial={{ x: -100, y: -40, opacity: 0, rotate: -15 }}
+              animate={{
+                x: [0, 210, 420],
+                y: [-40, -40, -40],
+                opacity: [0, 1, 1, 0],
+                rotate: [-15, -8, 0],
+                scale: [0.8, 1, 0.85]
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                delay: index * 1,
+                ease: "easeInOut"
+              }}
+              style={{ transformOrigin: 'center' }}
+            >
+              <div className="p-2 space-y-0.5 text-[5px] leading-tight">
+                {/* Receipt Header */}
+                <div className="text-center font-bold border-b border-gray-300 pb-0.5 mb-1">
+                  <div className="h-1.5 bg-gray-800 rounded w-2/3 mx-auto mb-0.5"></div>
+                  <div className="h-0.5 bg-gray-500 rounded w-1/2 mx-auto"></div>
+                </div>
+                
+                {/* Receipt Items */}
+                <div className="space-y-0.5">
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-700 rounded w-2/3"></div>
+                    <div className="h-1 bg-gray-700 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-1/2"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-3/5"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-1 bg-gray-600 rounded w-1/2"></div>
+                    <div className="h-1 bg-gray-600 rounded w-1/5"></div>
+                  </div>
+                </div>
+                
+                {/* Total */}
+                <div className="border-t border-gray-300 pt-0.5 mt-1">
+                  <div className="flex justify-between items-center">
+                    <div className="h-1.5 bg-gray-900 rounded w-1/3"></div>
+                    <div className="h-1.5 bg-gray-900 rounded w-1/4"></div>
+                  </div>
+                </div>
+                
+                {/* Footer text */}
+                <div className="mt-1 space-y-0.5">
+                  <div className="h-0.5 bg-gray-400 rounded w-3/4 mx-auto"></div>
+                  <div className="h-0.5 bg-gray-400 rounded w-2/3 mx-auto"></div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+
+          {/* Central App Box - AI Processing */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <motion.div
+              className="relative w-64 h-56 bg-gradient-to-br from-primary/20 to-purple-500/20 backdrop-blur-md rounded-2xl border-2 border-primary/40 shadow-2xl overflow-hidden"
+              animate={{
+                boxShadow: [
+                  '0 0 20px rgba(59, 130, 246, 0.3)',
+                  '0 0 40px rgba(147, 51, 234, 0.5)',
+                  '0 0 20px rgba(59, 130, 246, 0.3)',
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              {/* Receipt Being Scanned */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  className="relative w-32 h-40 bg-white dark:bg-gray-100 rounded shadow-lg p-3"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {/* Receipt Content */}
+                  <div className="space-y-2">
+                    <div className="h-2 bg-gray-800 rounded w-3/4"></div>
+                    <div className="h-1.5 bg-gray-600 rounded w-1/2"></div>
+                    <div className="h-1 bg-gray-400 rounded w-2/3"></div>
+                    <div className="border-t border-gray-300 my-2"></div>
+                    <div className="h-1 bg-gray-500 rounded w-full"></div>
+                    <div className="h-1 bg-gray-500 rounded w-4/5"></div>
+                    <div className="border-t border-gray-300 my-2"></div>
+                    <div className="h-2 bg-gray-700 rounded w-1/2"></div>
+                  </div>
+
+                  {/* Scanning Highlight */}
+                  <motion.div
+                    className="absolute inset-0 border-2 border-primary rounded"
+                    animate={{
+                      opacity: [0, 1, 0],
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </motion.div>
+              </div>
+
+              {/* AI Sparkle - Top Right Corner */}
+              <div className="absolute top-3 right-3 z-20">
+                <motion.div
+                  animate={{
+                    rotate: [0, 360],
+                    scale: [1, 1.3, 1],
+                  }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </motion.div>
+              </div>
+
+              {/* App Label */}
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
+                <p className="text-xs font-semibold text-primary">AI Extracting Data</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Flying Data Tags - Going to Xero (Outside the box) */}
+          {[
+            { text: '£45.20', delay: 0, offset: -60, color: 'bg-green-500' },
+            { text: 'IKEA', delay: 0.5, offset: -30, color: 'bg-blue-500' },
+            { text: 'Office Supplies', delay: 1, offset: 0, color: 'bg-purple-500' },
+            { text: 'VAT £9.04', delay: 1.5, offset: 30, color: 'bg-orange-500' },
+            { text: '15 Feb 2026', delay: 2, offset: 60, color: 'bg-pink-500' },
+          ].map((item, index) => (
+            <motion.div
+              key={'data-tag-' + index}
+              className={'absolute left-1/2 top-1/2 px-2 py-1 text-white text-xs rounded-md shadow-lg whitespace-nowrap font-semibold z-30 ' + item.color}
+              style={{ marginTop: item.offset + 'px' }}
+              animate={{
+                x: [0, 200, 360, 380],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                delay: item.delay,
+                ease: "easeInOut"
+              }}
+            >
+              {item.text}
+            </motion.div>
+          ))}
+
+          {/* Xero Logo/Badge (Right Side) */}
+          <motion.div
+            className="absolute right-0 top-1/2 -translate-y-1/2 hidden lg:block"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <motion.div
+              className="w-32 h-32 bg-white dark:bg-white rounded-2xl flex items-center justify-center border-2 border-blue-500/30 p-4"
+            >
+              <Image 
+                src="/XeroLogo.png" 
+                alt="Xero" 
+                width={96} 
+                height={96}
+                className="object-contain"
+              />
+            </motion.div>
+          </motion.div>
+          </div>
+        </motion.div>
       </section>
 
       {/* Problem/Solution Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-background to-muted/20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Stop Losing Money to Poor Expense Management
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            UK freelancers waste 3-5 hours monthly on expense tracking. We automate it all.
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-8 items-start max-w-6xl mx-auto">
+          {/* Problems Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="bg-card border-2 border-red-200 dark:border-red-900/30 rounded-xl p-8 shadow-lg"
           >
-            <h2 className="text-3xl font-bold mb-6">Tired of Manual Expense Management?</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold">The Old Way</h3>
+            </div>
             <ul className="space-y-4">
-              <li className="flex items-start">
-                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
-                <span>Lost receipts at tax time</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Lost receipts at tax time</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Scrambling through emails and photos when HMRC asks</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
-                <span>No time to log expenses during busy day</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Hours on manual data entry</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Typing receipts into spreadsheets or Xero one by one</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
-                <span>Hours spent on manual data entry</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Confused by HMRC compliance</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Which category? Can I claim this? What rate?</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
-                <span>Confused by HMRC compliance rules</span>
-              </li>
-              <li className="flex items-start">
-                <XCircle className="h-5 w-5 text-destructive mt-1 mr-3 shrink-0" />
-                <span>Mileage logs scattered everywhere</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Mileage logs scattered everywhere</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Sticky notes, phone notes, memory – never accurate</p>
+                </div>
               </li>
             </ul>
+            <div className="mt-6 pt-6 border-t border-red-200 dark:border-red-900/30">
+              <p className="text-center text-red-700 dark:text-red-300 font-semibold">
+                💸 Average loss: £2,000+ in unclaimed expenses yearly
+              </p>
+            </div>
           </motion.div>
+
+          {/* Solutions Card */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="bg-card border-2 border-green-200 dark:border-green-900/30 rounded-xl p-8 shadow-lg"
           >
-            <h2 className="text-3xl font-bold mb-6">Smart Expense Tracking Made Simple</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-2xl font-bold">The ExpenseFlow Way</h3>
+            </div>
             <ul className="space-y-4">
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Upload or email receipts - process multiple at once</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Email receipts, we handle the rest</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Forward to your unique email. AI extracts everything.</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Auto-categorised with HMRC categories</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Auto-syncs to Xero</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Approved receipts flow directly to your accounting</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Sync directly to Xero - no manual data entry</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">HMRC-compliant categories</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">AI suggests correct categories. Built-in tax calculator.</p>
+                </div>
               </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Automatic duplicate detection - never claim twice</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Track mileage with saved journey templates</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>View spending analytics and insights</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Save 3-5 hours per month on expense tracking</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-1 mr-3 shrink-0" />
-                <span>Generate tax-ready reports in seconds</span>
+              <li className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">Smart mileage tracking</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Save routes as templates. One tap to log journeys.</p>
+                </div>
               </li>
             </ul>
+            <div className="mt-6 pt-6 border-t border-green-200 dark:border-green-900/30">
+              <p className="text-center text-green-700 dark:text-green-300 font-semibold">
+                ⚡ Save 3-5 hours monthly. Claim every expense.
+              </p>
+            </div>
           </motion.div>
         </div>
+
+        {/* Stats Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-4xl mx-auto"
+        >
+          <div className="text-center p-4">
+            <AnimatedCounter from={0} to={5} duration={2} suffix="hrs" />
+            <div className="text-sm text-muted-foreground">Saved Monthly</div>
+          </div>
+          <div className="text-center p-4">
+            <AnimatedCounter from={0} to={2} duration={1.5} suffix=" secs" />
+            <div className="text-sm text-muted-foreground">Receipt Processing</div>
+          </div>
+          <div className="text-center p-4">
+            <AnimatedCounter from={0} to={100} duration={2} suffix="%" />
+            <div className="text-sm text-muted-foreground">HMRC Compliant</div>
+          </div>
+          <div className="text-center p-4">
+            <AnimatedCounter from={0} to={0} duration={1} prefix="£" />
+            <div className="text-sm text-muted-foreground">To Get Started</div>
+          </div>
+        </motion.div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="container mx-auto px-4 py-20 bg-muted/30">
+      <section id="features" className="container mx-auto px-4 py-12 bg-muted/30">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need to know</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Built specifically for UK freelancers, sole traders & contractors
           </p>
@@ -280,48 +736,6 @@ export default function LandingClientPage() {
             </motion.div>
           ))}
         </motion.div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">How it works</h2>
-          <p className="text-xl text-muted-foreground">Three simple steps to organized expenses</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {[
-            {
-              number: 1,
-              title: 'Upload or Email Receipts',
-              description: 'Sign up and start uploading receipts directly, or use your unique email address to forward them on-the-go.'
-            },
-            {
-              number: 2,
-              title: 'AI Extracts & Syncs',
-              description: 'Our AI automatically extracts all data and categorises expenses for HMRC. Connect Xero to auto-sync. Track mileage with journey templates.'
-            },
-            {
-              number: 3,
-              title: 'Export Tax Reports',
-              description: 'View organised expenses in your dashboard. Generate tax-ready reports in one click.'
-            }
-          ].map((step) => (
-            <motion.div
-              key={step.number}
-              className="text-center space-y-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: step.number * 0.1 }}
-            >
-              <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto">
-                {step.number}
-              </div>
-              <h3 className="text-xl font-semibold">{step.title}</h3>
-              <p className="text-muted-foreground">{step.description}</p>
-            </motion.div>
-          ))}
-        </div>
       </section>
 
       {/* FAQ Section */}
