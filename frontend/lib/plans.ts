@@ -71,7 +71,7 @@ export const PLANS: Plan[] = [
       { text: 'AI-powered OCR scanning' },
       { text: 'Real-time UK tax calculator' },
       { text: 'Analytics dashboard' },
-      { text: 'CSV export' },
+      { text: 'CSV + PDF + Image export', highlight: true },
       { text: 'Journey templates' },
       { text: 'Email support' },
     ],

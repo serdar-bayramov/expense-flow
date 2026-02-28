@@ -90,12 +90,6 @@ export function PricingCard({
           ))}
         </ul>
 
-        {plan.betaNote && (
-          <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 mb-4 sm:mb-6 px-3 py-2 bg-orange-50 dark:bg-orange-950 rounded-md">
-            {plan.betaNote}
-          </p>
-        )}
-
         {showCTA && onSelectPlan && (
           <Button
             onClick={() => onSelectPlan(plan.id)}

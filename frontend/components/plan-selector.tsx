@@ -103,12 +103,6 @@ export function PlanSelector({ currentPlan, onSelectPlan, isLoading = false }: P
                       </div>
                     ))}
                 </div>
-
-                {plan.betaNote && (
-                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-3">
-                    {plan.betaNote}
-                  </p>
-                )}
               </CardContent>
             </Card>
           );
