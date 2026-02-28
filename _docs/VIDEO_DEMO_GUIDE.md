@@ -59,7 +59,7 @@
 
 ### **65-75 sec: Call to Action**
 - Zoom out to show full dashboard
-- Text: "Start tracking free - 50 receipts/month"
+- Text: "Start tracking free - 10 receipts/month"
 - Show URL: expenseflow.co.uk
 
 ---

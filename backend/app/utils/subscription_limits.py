@@ -12,8 +12,8 @@ from app.models.mileage_claim import MileageClaim
 # Plan limits - monthly limits
 PLAN_LIMITS = {
     "free": {
-        "receipts": 50,  # Beta: 50 receipts (will return to 10 after beta)
-        "mileage_claims": 20,  # Beta: increased to 20 for beta testers
+        "receipts": 10,
+        "mileage_claims": 5,
         "analytics_dashboard": True,  # Now available for free tier
         "export_reports": True,  # CSV export for free tier
         "journey_templates": True,  # Templates available for all

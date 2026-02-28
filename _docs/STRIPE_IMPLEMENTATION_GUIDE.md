@@ -13,9 +13,8 @@ This is your **source of truth** for plan metadata - pricing, features, and limi
 
 #### FREE PLAN
 - **Price:** £0/forever
-- **Limits:** 50 receipts/month, 20 mileage claims
+- **Limits:** 10 receipts/month, 5 mileage claims
 - **Features:** Basic OCR, tax calculator, CSV export
-- **Beta bonus:** Increased from 10 receipts to 50
 
 #### PROFESSIONAL PLAN (Popular)
 - **Price:** £10/month

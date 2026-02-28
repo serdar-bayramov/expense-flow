@@ -87,7 +87,7 @@ stripe trigger invoice.payment_failed
   - `stripe_subscription_id = NULL`
   - `subscription_current_period_end = NULL`
 - ✅ User loses access to paid features immediately
-- ✅ Dashboard shows Free plan limits (50 receipts, 20 mileage)
+- ✅ Dashboard shows Free plan limits (10 receipts, 5 mileage)
 - ✅ Settings page shows Free plan badge
 
 **Verify Immediate Downgrade:**

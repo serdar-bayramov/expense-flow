@@ -28,9 +28,9 @@ USAGE EXAMPLES:
     python scripts/manage_subscriptions.py list-plan professional
 
 SUBSCRIPTION PLANS:
-    free            - 50 receipts, 20 mileage claims per month
-    professional    - 200 receipts, unlimited mileage
-    pro_plus        - Unlimited everything
+    free            - 10 receipts, 5 mileage claims per month
+    professional    - 100 receipts, 50 mileage claims per month
+    pro_plus        - 500 receipts, 200 mileage claims per month
 
 NOTES:
     - Monthly usage resets automatically on the 1st of each month
@@ -50,6 +50,7 @@ from app.core.database import Settings, Base
 from app.models.user import User
 from app.models.receipt import Receipt
 from app.models.mileage_claim import MileageClaim
+from app.utils.subscription_limits import PLAN_LIMITS
 
 
 def get_db_session():
@@ -59,16 +60,13 @@ def get_db_session():
     return Session(engine)
 
 
-def get_monthly_limits(user: User):
-    """Calculate monthly limits based on user's subscription"""
-    # Plan-based limits
-    limits = {
-        'free': {'receipts': 50, 'mileage': 20},
-        'professional': {'receipts': 200, 'mileage': 999999},  # "Unlimited"
-        'pro_plus': {'receipts': 999999, 'mileage': 999999}
+def get_plan_limits(user: User):
+    """Get plan limits for display (wrapper around PLAN_LIMITS)"""
+    plan_data = PLAN_LIMITS.get(user.subscription_plan, PLAN_LIMITS['free'])
+    return {
+        'receipts': plan_data['receipts'],
+        'mileage': plan_data['mileage_claims']  # Map to consistent key for display
     }
-    
-    return limits.get(user.subscription_plan, limits['free'])
 
 
 def get_current_usage(db: Session, user: User):
@@ -105,7 +103,7 @@ def show_subscription(email: str):
             print(f"❌ User not found: {email}")
             return
         
-        limits = get_monthly_limits(user)
+        limits = get_plan_limits(user)
         usage = get_current_usage(db, user)
         
         print(f"\n{'='*60}")
@@ -140,7 +138,7 @@ def show_usage(email: str):
         next_month = month_start + relativedelta(months=1)
         days_left = (next_month - now).days
         
-        limits = get_monthly_limits(user)
+        limits = get_plan_limits(user)
         usage = get_current_usage(db, user)
         
         # Calculate remaining
@@ -199,7 +197,7 @@ def upgrade_plan(email: str, plan: str):
         print(f"   {old_plan.upper()} → {plan.upper()}")
         print(f"\n📦 New limits:")
         
-        limits = get_monthly_limits(user)
+        limits = get_plan_limits(user)
         print(f"   Receipts:           {limits['receipts'] if limits['receipts'] < 999999 else 'Unlimited'}")
         print(f"   Mileage:            {limits['mileage'] if limits['mileage'] < 999999 else 'Unlimited'}")
 
@@ -227,7 +225,7 @@ def downgrade_plan(email: str):
         print(f"   {old_plan.upper()} → FREE")
         print(f"\n📦 New limits:")
         
-        limits = get_monthly_limits(user)
+        limits = get_plan_limits(user)
         print(f"   Receipts:           {limits['receipts']}")
         print(f"   Mileage:            {limits['mileage']}")
 

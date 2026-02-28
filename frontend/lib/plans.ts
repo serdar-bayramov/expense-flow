@@ -15,7 +15,6 @@ export interface Plan {
   period: string;
   popular?: boolean;
   features: PlanFeature[];
-  betaNote?: string;
   limits: {
     receipts: number;
     mileage: number;
@@ -36,8 +35,8 @@ export const PLANS: Plan[] = [
     priceMonthly: 0,
     period: 'forever',
     features: [
-      { text: '50 receipts/month (10 after beta)', highlight: true },
-      { text: '20 mileage claims/month (5 after beta)', highlight: true },
+      { text: '10 receipts per month', highlight: true },
+      { text: '5 mileage claims per month', highlight: true },
       { text: 'Upload or email receipts' },
       { text: 'AI-powered OCR scanning' },
       { text: 'Real-time UK tax calculator' },
@@ -46,10 +45,9 @@ export const PLANS: Plan[] = [
       { text: 'Journey templates' },
       { text: 'Email support' },
     ],
-    betaNote: '🎉 Increased limits during beta',
     limits: {
-      receipts: 50,
-      mileage: 20,
+      receipts: 10,
+      mileage: 5,
       analytics: true,
       templates: true,
       exportFormats: ['csv'],

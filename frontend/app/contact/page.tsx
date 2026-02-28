@@ -66,7 +66,7 @@ export default function ContactPage() {
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-2">Business Owner</h3>
               <p className="text-sm text-muted-foreground">
-                ExpenseFlow is an expense tracking tool currently in beta stage 
+                ExpenseFlow is an expense tracking tool for UK freelancers 
               </p>
             </CardContent>
           </Card>
