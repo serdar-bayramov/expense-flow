@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/dashboard/', '/api/'],
       },
     ],
-    sitemap: 'https://expenseflow.co.uk/sitemap.xml',
+    sitemap: 'https://www.expenseflow.co.uk/sitemap.xml',
   };
 }
