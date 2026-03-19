@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ExpenseFlow - Expense Tracking UK for Self-Employed",
     description: "Smart expense management for UK self-employed, freelancers and sole traders. HMRC compliant tracking.",
-    url: "https://expenseflow.co.uk",
+    url: "https://www.expenseflow.co.uk",
     siteName: "ExpenseFlow",
     type: "website",
   },
