@@ -18,10 +18,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.expenseflow.co.uk'),
   title: "ExpenseFlow - Smart Expense Tracking for UK Self-Employed & Freelancers",
   description: "Smart expense management for UK self-employed, freelancers and sole traders. AI receipt scanning, HMRC categorisation, mileage tracking. Free plan available.",
   keywords: ["expense tracking uk", "expense management uk", "self employed expense tracker", "freelancer expenses", "sole trader expenses", "receipt scanner uk", "mileage tracker uk", "HMRC compliant", "business expense app", "uk tax expenses"],
   authors: [{ name: "ExpenseFlow" }],
+  alternates: {
+    canonical: 'https://www.expenseflow.co.uk',
+  },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
