@@ -18,7 +18,7 @@ PLAN_LIMITS = {
         "export_reports": True,  # CSV export for free tier
         "journey_templates": True,  # Templates available for all
         "advanced_ocr": False,
-        "export_formats": ["csv"],  # CSV export enabled
+        "export_formats": ["csv", "pdf", "images"],  # All exports enabled
         "support_level": "email"
     },
     "professional": {
@@ -28,7 +28,7 @@ PLAN_LIMITS = {
         "export_reports": True,
         "journey_templates": True,
         "advanced_ocr": True,
-        "export_formats": ["csv"],
+        "export_formats": ["csv", "pdf", "images"],
         "support_level": "email"
     },
     "pro_plus": {
